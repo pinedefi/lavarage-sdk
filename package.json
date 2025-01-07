@@ -1,0 +1,25 @@
+{
+  "name": "lavarage-sdk",
+  "version": "4.5.0",
+  "description": "Lavarage SDK",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "/"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsup"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.29.0",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.2.4"
+  }
+}
