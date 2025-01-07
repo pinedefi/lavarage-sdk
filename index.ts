@@ -60,7 +60,7 @@ export const getOpenPositions = (lavarageProgram: Program<Lavarage> | Program<La
   {
     memcmp: {
       offset: 40,
-      bytes: bs58.encode(Buffer.from(new Uint8Array(8))),
+      bytes: bs58.encode(new Uint8Array(8)),
     },
   },])
 }
@@ -76,13 +76,13 @@ export const getClosedPositions = async (lavarageProgram: Program<Lavarage> | Pr
   {
     memcmp: {
       offset: 40,
-      bytes: bs58.encode(valueBuffer),
+      bytes: bs58.encode(Uint8Array.from(valueBuffer)),
     },
   },])).concat(await lavarageProgram.account.position.all([{ dataSize: 178 },
   {
     memcmp: {
       offset: 40,
-      bytes: bs58.encode(valueBuffer2),
+      bytes: bs58.encode(Uint8Array.from(valueBuffer2)),
     },
   },]))
 }
@@ -95,7 +95,7 @@ export const getLiquidatedPositions = (lavarageProgram: Program<Lavarage> | Prog
   {
     memcmp: {
       offset: 40,
-      bytes: bs58.encode(valueBuffer),
+      bytes: bs58.encode(Uint8Array.from(valueBuffer)),
     },
   },])
 }
@@ -157,7 +157,7 @@ export const openTradeV1 = async (lavarageProgram: Program<Lavarage>, offer: Pro
       if (accountInfo) {
         const addressLookupTableAccount = new AddressLookupTableAccount({
           key: new PublicKey(addressLookupTableAddress),
-          state: AddressLookupTableAccount.deserialize(accountInfo.data),
+          state: AddressLookupTableAccount.deserialize(Uint8Array.from(accountInfo.data)),
         })
         acc.push(addressLookupTableAccount)
       }
@@ -280,7 +280,7 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
       if (accountInfo) {
         const addressLookupTableAccount = new AddressLookupTableAccount({
           key: new PublicKey(addressLookupTableAddress),
-          state: AddressLookupTableAccount.deserialize(accountInfo.data),
+          state: AddressLookupTableAccount.deserialize(Uint8Array.from(accountInfo.data)),
         })
         acc.push(addressLookupTableAccount)
       }
@@ -408,7 +408,7 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
       if (accountInfo) {
         const addressLookupTableAccount = new AddressLookupTableAccount({
           key: new PublicKey(addressLookupTableAddress),
-          state: AddressLookupTableAccount.deserialize(accountInfo.data),
+          state: AddressLookupTableAccount.deserialize(Uint8Array.from(accountInfo.data)),
         })
         acc.push(addressLookupTableAccount)
       }
@@ -568,7 +568,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       if (accountInfo) {
         const addressLookupTableAccount = new AddressLookupTableAccount({
           key: new PublicKey(addressLookupTableAddress),
-          state: AddressLookupTableAccount.deserialize(accountInfo.data),
+          state: AddressLookupTableAccount.deserialize(Uint8Array.from(accountInfo.data)),
         })
         acc.push(addressLookupTableAccount)
       }
