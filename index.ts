@@ -51,6 +51,8 @@ async function getTokenAccountOrCreateIfNotExists(lavarageProgram: Program<Lavar
 
 
 export * from './idl/lavarage'
+export * as IDLV2 from './idl/lavaragev2'
+
 export const getOffers = (lavarageProgram: Program<Lavarage> | Program<LavarageV2>) => {
   return lavarageProgram.account.pool.all()
 }

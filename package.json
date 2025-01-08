@@ -16,9 +16,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@coral-xyz/anchor": "^0.29.0",
+    "@coral-xyz/anchor": "0.29.0",
     "bs58": "^6.0.0",
-    "@solana/spl-token": "*"
+    "@solana/spl-token": "*",
+    "@solana/web3.js": "1.95.3"
   },
   "devDependencies": {
     "tsup": "^8.2.4"
