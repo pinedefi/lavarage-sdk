@@ -74,6 +74,9 @@ export const getClosedPositions = async (lavarageProgram: Program<Lavarage> | Pr
   const value2 = BigInt(9998)
   const valueBuffer2 = Buffer.alloc(8)
   valueBuffer2.writeBigUInt64LE(value2)
+  const value3 = BigInt(9996)
+  const valueBuffer3 = Buffer.alloc(8)
+  valueBuffer3.writeBigUInt64LE(value3)
   return (await lavarageProgram.account.position.all([{ dataSize: 178 },
   {
     memcmp: {
@@ -87,6 +90,13 @@ export const getClosedPositions = async (lavarageProgram: Program<Lavarage> | Pr
       bytes: bs58.encode(Uint8Array.from(valueBuffer2)),
     },
   },]))
+  .concat(await lavarageProgram.account.position.all([{ dataSize: 178 },
+    {
+      memcmp: {
+        offset: 40,
+        bytes: bs58.encode(Uint8Array.from(valueBuffer3)),
+      },
+    },]))
 }
 
 export const getLiquidatedPositions = (lavarageProgram: Program<Lavarage> | Program<LavarageV2>) => {
