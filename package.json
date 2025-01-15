@@ -23,5 +23,8 @@
   },
   "devDependencies": {
     "tsup": "^8.2.4"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+}
 }
