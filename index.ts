@@ -2,7 +2,7 @@ import { BN, Program, ProgramAccount } from '@coral-xyz/anchor'
 import { Lavarage } from './idl/lavarage'
 import { Lavarage as LavarageV2 } from './idl/lavaragev2'
 import bs58 from 'bs58'
-import { AddressLookupTableAccount, Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_INSTRUCTIONS_PUBKEY, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
+import { AddressLookupTableAccount, ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_INSTRUCTIONS_PUBKEY, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
 
 
@@ -366,6 +366,117 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
   return tx
 }
 
+export const createTpDelegate = async (lavarageProgram: Program<Lavarage> | Program<LavarageV2>, position: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, tpPrice: BN, tpTolerence: BN, prioFee: BN, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey) => {
+  const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
+  const ix = await lavarageProgram.methods.tradingCreateTpDelegate(tpPrice, tpTolerence, new PublicKey('6dA5GTDPWxnw3gvjoy3vYBDyY7iETxcTJzt8RqF9i9MV'), new BN(10000))
+  .accountsStrict({
+    delegate: getPda([Buffer.from('delegate'), position.publicKey.toBuffer()], lavarageProgram.programId),
+    originalOperator: lavarageProgram.provider.publicKey!,
+    delegatedAccount: position.publicKey,
+    systemProgram: SystemProgram.programId,
+  }).remainingAccounts(partnerFeeRecipient ? [{
+    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, true),
+    isSigner: false,
+    isWritable: true,
+  }] : [])
+  .instruction()
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: prioFee.toNumber(),
+  })
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [
+      ix,
+      computeFeeIx,
+    ].filter(Boolean),
+  }).compileToV0Message()
+
+  return new VersionedTransaction(messageV0)
+}
+
+export const modifyTpDelegate = async (lavarageProgram: Program<Lavarage> | Program<LavarageV2>, position: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, tpPrice: BN, tpTolerence: BN, prioFee: BN, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey) => {
+  const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
+  const delegatePda = getPda([Buffer.from('delegate'), position.publicKey.toBuffer()], lavarageProgram.programId)
+  const removeIx = await lavarageProgram.methods.tradingRemoveTpDelegate().accountsStrict({
+    delegate: delegatePda,
+    originalOperator: lavarageProgram.provider.publicKey!,
+    delegatedAccount: position.publicKey,
+    systemProgram: SystemProgram.programId,
+  }).instruction()
+  const ix = await lavarageProgram.methods.tradingCreateTpDelegate(tpPrice, tpTolerence, new PublicKey('6dA5GTDPWxnw3gvjoy3vYBDyY7iETxcTJzt8RqF9i9MV'), new BN(10000))
+  .accountsStrict({
+    delegate: delegatePda,
+    originalOperator: lavarageProgram.provider.publicKey!,
+    delegatedAccount: position.publicKey,
+    systemProgram: SystemProgram.programId,
+  }).remainingAccounts(partnerFeeRecipient ? [{
+    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, true),
+    isSigner: false,
+    isWritable: true,
+  }] : [])
+  .instruction()
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: prioFee.toNumber(),
+  })
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [
+      removeIx,
+      ix,
+      computeFeeIx,
+    ].filter(Boolean),
+  }).compileToV0Message()
+
+  return new VersionedTransaction(messageV0)
+}
+
+export const removeTpDelegate = async (lavarageProgram: Program<Lavarage> | Program<LavarageV2>, position: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, prioFee: BN) => {
+  const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
+  const delegatePda = getPda([Buffer.from('delegate'), position.publicKey.toBuffer()], lavarageProgram.programId)
+  const removeIx = await lavarageProgram.methods.tradingRemoveTpDelegate().accountsStrict({
+    delegate: delegatePda,
+    originalOperator: lavarageProgram.provider.publicKey!,
+    delegatedAccount: position.publicKey,
+    systemProgram: SystemProgram.programId,
+  }).instruction()
+  
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: prioFee.toNumber(),
+  })
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [
+      removeIx,
+      computeFeeIx,
+    ].filter(Boolean),
+  }).compileToV0Message()
+
+  return new VersionedTransaction(messageV0)
+}
+
 export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position: ProgramAccount<{
   pool: PublicKey,
   seed: PublicKey,
@@ -510,7 +621,7 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
       {
         fromPubkey: lavarageProgram.provider.publicKey!,
         toPubkey: partnerFeeRecipient!,
-        lamports: profit.toNumber() > 0 ? profit.mul(new BN(profitFeeMarkup * 1000)).div(new BN(1000)).toNumber() : 0
+        lamports: profit.toNumber() > 0 ? profit.mul(new BN(profitFeeMarkup * 10000)).div(new BN(10000)).toNumber() : 0
       }
     ) : null,
   ].filter(i => !!i)
