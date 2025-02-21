@@ -1,6 +1,6 @@
 {
   "name": "@lavarage/sdk",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Lavarage SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -19,7 +19,7 @@
     "@coral-xyz/anchor": "0.29.0",
     "bs58": "^6.0.0",
     "@solana/spl-token": "*",
-    "@solana/web3.js": "1.95.3"
+    "@solana/web3.js": "1.98.0"
   },
   "devDependencies": {
     "tsup": "^8.2.4"

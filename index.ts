@@ -321,7 +321,7 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
       feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
       toTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!),
       tokenProgram: TOKEN_PROGRAM_ID,
-      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, offer.account.nodeWallet),
+      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, offer.account.nodeWallet, true),
     }).remainingAccounts(partnerFeeRecipient ? [{
       pubkey: partnerFeeRecipient,
       isSigner: false,
@@ -741,7 +741,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
       fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!),
       tokenProgram: TOKEN_PROGRAM_ID,
-      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet),
+      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true),
       mint: quoteToken,
     }).remainingAccounts(partnerFeeRecipient ? [{
       pubkey: partnerFeeRecipient,
@@ -763,7 +763,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
       fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!),
       tokenProgram: TOKEN_PROGRAM_ID,
-      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet),
+      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true),
       mint: quoteToken,
     }).remainingAccounts(partnerFeeRecipient ? [{
       pubkey: partnerFeeRecipient,
