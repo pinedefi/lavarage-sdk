@@ -3,7 +3,7 @@ import { Lavarage } from './idl/lavarage'
 import { Lavarage as LavarageV2 } from './idl/lavaragev2'
 import bs58 from 'bs58'
 import { AddressLookupTableAccount, ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_INSTRUCTIONS_PUBKEY, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
-import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
+import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
 
 
 export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
@@ -16,8 +16,8 @@ export function getPositionAccountPDA(lavarageProgram: Program<Lavarage> | Progr
   return getPda([Buffer.from('position'), lavarageProgram.provider.publicKey!.toBuffer(), offer.publicKey.toBuffer(), seed.toBuffer()], lavarageProgram.programId)
 }
 
-async function getTokenAccountOrCreateIfNotExists(lavarageProgram: Program<Lavarage> | Program<LavarageV2>, ownerPublicKey: PublicKey, tokenAddress: PublicKey) {
-  const associatedTokenAddress = getAssociatedTokenAddressSync(tokenAddress, ownerPublicKey, true, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID)
+async function getTokenAccountOrCreateIfNotExists(lavarageProgram: Program<Lavarage> | Program<LavarageV2>, ownerPublicKey: PublicKey, tokenAddress: PublicKey, tokenProgram?: PublicKey) {
+  const associatedTokenAddress = getAssociatedTokenAddressSync(tokenAddress, ownerPublicKey, true, tokenProgram, ASSOCIATED_TOKEN_PROGRAM_ID)
 
   try {
     const tokenAccount = await getAccount(lavarageProgram.provider.connection, associatedTokenAddress, 'finalized')
@@ -30,7 +30,7 @@ async function getTokenAccountOrCreateIfNotExists(lavarageProgram: Program<Lavar
         associatedTokenAddress,
         ownerPublicKey,
         tokenAddress,
-        TOKEN_PROGRAM_ID,
+        tokenProgram,
         ASSOCIATED_TOKEN_PROGRAM_ID,
       )
 
@@ -130,9 +130,13 @@ export const openTradeV1 = async (lavarageProgram: Program<Lavarage>, offer: Pro
 }, marginSOL: BN, leverage: number, randomSeed: Keypair, partnerFeeRecipient?: PublicKey) => {
   // assuming all token accounts are created prior
   const positionAccount = getPositionAccountPDA(lavarageProgram, offer, randomSeed.publicKey)
-  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, offer.account.collateralType)
 
-  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccount, offer.account.collateralType)
+  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(offer.account.collateralType)
+  const tokenProgram = mintAccount?.owner
+
+  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, offer.account.collateralType, tokenProgram)
+
+  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccount, offer.account.collateralType, tokenProgram)
 
   const tokenAccountCreationTx = new Transaction()
 
@@ -253,9 +257,16 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
 }, marginSOL: BN, leverage: number, randomSeed: Keypair, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey) => {
   // assuming all token accounts are created prior
   const positionAccount = getPositionAccountPDA(lavarageProgram, offer, randomSeed.publicKey)
-  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, offer.account.collateralType)
 
-  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccount, offer.account.collateralType)
+  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(offer.account.collateralType)
+  const tokenProgram = mintAccount?.owner
+
+  const quoteMintAccount = await lavarageProgram.provider.connection.getAccountInfo(quoteToken)
+  const quoteTokenProgram = quoteMintAccount?.owner
+
+  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, offer.account.collateralType, tokenProgram)
+
+  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccount, offer.account.collateralType, tokenProgram)
 
   const tokenAccountCreationTx = new Transaction()
 
@@ -319,9 +330,9 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
       clock: SYSVAR_CLOCK_PUBKEY,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
       feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
-      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!),
-      tokenProgram: TOKEN_PROGRAM_ID,
-      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, offer.account.nodeWallet, true),
+      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, true, quoteTokenProgram),
+      tokenProgram: tokenProgram!,
+      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, offer.account.nodeWallet, true, tokenProgram),
     }).remainingAccounts(partnerFeeRecipient ? [{
       pubkey: partnerFeeRecipient,
       isSigner: false,
@@ -501,11 +512,14 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
 
   const tokenAddressPubKey = new PublicKey(offer.account.collateralType)
 
+  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(offer.account.collateralType)
+  const tokenProgram = mintAccount?.owner
+
   const positionAccountPDA = position.publicKey
 
-  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccountPDA, tokenAddressPubKey)
+  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccountPDA, tokenAddressPubKey, tokenProgram)
 
-  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, tokenAddressPubKey)
+  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, tokenAddressPubKey, tokenProgram)
 
   const jupiterSellIx = jupInstruction!.instructions
 
@@ -560,7 +574,7 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
       clock: SYSVAR_CLOCK_PUBKEY,
       systemProgram: SystemProgram.programId,
       trader: lavarageProgram.provider.publicKey!,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: tokenProgram!,
       randomAccountAsId: position.account.seed,
     })
     .instruction()
@@ -661,11 +675,17 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
 
   const tokenAddressPubKey = new PublicKey(offer.account.collateralType)
 
+  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(offer.account.collateralType)
+  const tokenProgram = mintAccount?.owner
+
+  const quoteMintAccount = await lavarageProgram.provider.connection.getAccountInfo(quoteToken)
+  const quoteTokenProgram = quoteMintAccount?.owner
+
   const positionAccountPDA = position.publicKey
 
-  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccountPDA, tokenAddressPubKey)
+  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, positionAccountPDA, tokenAddressPubKey, tokenProgram)
 
-  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, tokenAddressPubKey)
+  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(lavarageProgram, lavarageProgram.provider.publicKey!, tokenAddressPubKey, tokenProgram)
 
   const jupiterSellIx = jupInstruction!.instructions
 
@@ -702,11 +722,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
 
   const addressLookupTableAccounts: AddressLookupTableAccount[] = []
 
-  
-
   const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
-
-  
 
   const closePositionIx = await lavarageProgram.methods
     .tradingCloseBorrowCollateral()
@@ -720,7 +736,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       clock: SYSVAR_CLOCK_PUBKEY,
       systemProgram: SystemProgram.programId,
       trader: lavarageProgram.provider.publicKey!,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: tokenProgram!,
       randomAccountAsId: position.account.seed,
     })
     .instruction()
@@ -738,10 +754,10 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       systemProgram: SystemProgram.programId,
       clock: SYSVAR_CLOCK_PUBKEY,
       randomAccountAsId: position.account.seed,
-      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
-      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!),
-      tokenProgram: TOKEN_PROGRAM_ID,
-      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true),
+      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF'), false, quoteTokenProgram),
+      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
+      tokenProgram: quoteTokenProgram!,
+      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
       mint: quoteToken,
     }).remainingAccounts(partnerFeeRecipient ? [{
       pubkey: partnerFeeRecipient,
@@ -760,10 +776,10 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       systemProgram: SystemProgram.programId,
       clock: SYSVAR_CLOCK_PUBKEY,
       randomAccountAsId: position.account.seed,
-      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
-      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!),
-      tokenProgram: TOKEN_PROGRAM_ID,
-      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true),
+      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF'), false, quoteTokenProgram),
+      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
+      tokenProgram: quoteTokenProgram!,
+      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
       mint: quoteToken,
     }).remainingAccounts(partnerFeeRecipient ? [{
       pubkey: partnerFeeRecipient,
@@ -785,12 +801,13 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
     closePositionIx,
     ...jupiterIxs,
     repaySolIx,
-    profitFeeMarkup && partnerFeeRecipient ? SystemProgram.transfer(
-      {
-        fromPubkey: lavarageProgram.provider.publicKey!,
-        toPubkey: partnerFeeRecipient!,
-        lamports: profit.toNumber() > 0 ? profit.mul(new BN(profitFeeMarkup * 1000)).div(new BN(1000)).toNumber() : 0
-      }
+    profitFeeMarkup && partnerFeeRecipient ? createTransferInstruction(
+      getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
+      partnerFeeRecipient,
+      lavarageProgram.provider.publicKey!,
+      profit.toNumber() > 0 ? profit.mul(new BN(profitFeeMarkup * 1000)).div(new BN(1000)).toNumber() : 0,
+      [],
+      quoteTokenProgram!,
     ) : null,
   ].filter(i => !!i)
 
