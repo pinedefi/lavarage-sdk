@@ -581,7 +581,7 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
 
   let repaySolIx: TransactionInstruction | null = null
   let jupiterIxs: TransactionInstruction[] = []
-  if (jupInstruction.instructions == null ) {
+  if (jupInstruction.instructions == undefined ) {
     repaySolIx = await lavarageProgram.methods
     .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9997))
     .accountsStrict({
@@ -743,7 +743,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
 
   let repaySolIx: TransactionInstruction | null = null
   let jupiterIxs: TransactionInstruction[] = []
-  if (jupInstruction.instructions == null ) {
+  if (jupInstruction.instructions == undefined ) {
     repaySolIx = await lavarageProgram.methods
     .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9997))
     .accountsStrict({
