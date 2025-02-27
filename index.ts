@@ -789,10 +789,10 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
     .instruction()
     const { setupInstructions, swapInstruction: swapInstructionPayload, cleanupInstruction, addressLookupTableAddresses } = jupiterSellIx!
     jupiterIxs = [
-      ...setupInstructions.map(deserializeInstruction),
-      deserializeInstruction(swapInstructionPayload),
-      deserializeInstruction(cleanupInstruction),
-    ]
+      ...setupInstructions.filter(i => !!i).map(deserializeInstruction),
+      swapInstructionPayload ? deserializeInstruction(swapInstructionPayload) : null,
+      cleanupInstruction ? deserializeInstruction(cleanupInstruction) : null,
+    ].filter(i => !!i)
     addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(addressLookupTableAddresses)))
   }
   const profit = new BN(jupInstruction.quoteResponse.outAmount).sub(position.account.amount).sub(position.account.userPaid)
@@ -821,3 +821,20 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
 
   return tx
 }
+
+export const getDelegateAccounts = async (lavarageProgram: Program<Lavarage> | Program<LavarageV2>, userPubKey?: PublicKey) => {
+  const delegateAccounts = await lavarageProgram.account.delegate.all(userPubKey ? [{
+    memcmp: {
+      offset: 104,
+      bytes: userPubKey.toBase58(),
+    }
+  }] : undefined);  
+  return delegateAccounts.map(d => ({
+    ...d,
+    parsed: {
+      tpPrice: new BN(d.account.field1),
+      tpThreshold: new BN(d.account.field2),
+    }
+  }))
+}
+
