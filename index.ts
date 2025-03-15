@@ -3,7 +3,7 @@ import { Lavarage } from './idl/lavarage'
 import { Lavarage as LavarageV2 } from './idl/lavaragev2'
 import bs58 from 'bs58'
 import { AddressLookupTableAccount, ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_INSTRUCTIONS_PUBKEY, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
-import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
+import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
 
 
 export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
@@ -20,7 +20,7 @@ async function getTokenAccountOrCreateIfNotExists(lavarageProgram: Program<Lavar
   const associatedTokenAddress = getAssociatedTokenAddressSync(tokenAddress, ownerPublicKey, true, tokenProgram, ASSOCIATED_TOKEN_PROGRAM_ID)
 
   try {
-    const tokenAccount = await getAccount(lavarageProgram.provider.connection, associatedTokenAddress, 'finalized')
+    const tokenAccount = await getAccount(lavarageProgram.provider.connection, associatedTokenAddress, 'finalized', tokenProgram)
     return { account: tokenAccount, instruction: null }
   }
   catch (error) {
@@ -127,7 +127,15 @@ export const openTradeV1 = async (lavarageProgram: Program<Lavarage>, offer: Pro
     swapInstruction: Record<string, unknown>
     addressLookupTableAddresses: string[]
   }
-}, marginSOL: BN, leverage: number, randomSeed: Keypair, partnerFeeRecipient?: PublicKey) => {
+}, marginSOL: BN, leverage: number, randomSeed: Keypair, partnerFeeRecipient?: PublicKey, partnerFeeMarkup?: number) => {
+  let partnerFeeMarkupAsPkey
+  if (partnerFeeMarkup) {
+    const feeBuffer = Buffer.alloc(8)
+    feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup))
+    const feeBuffer32 = Buffer.alloc(32)
+    feeBuffer32.set(feeBuffer, 0)
+    partnerFeeMarkupAsPkey = new PublicKey(feeBuffer32)
+  }
   // assuming all token accounts are created prior
   const positionAccount = getPositionAccountPDA(lavarageProgram, offer, randomSeed.publicKey)
 
@@ -184,7 +192,7 @@ export const openTradeV1 = async (lavarageProgram: Program<Lavarage>, offer: Pro
 
   const addressLookupTableAccounts: AddressLookupTableAccount[] = []
 
-  addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(addressLookupTableAddresses)))
+  addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(['5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi', ...addressLookupTableAddresses])))
 
   const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
 
@@ -200,10 +208,15 @@ export const openTradeV1 = async (lavarageProgram: Program<Lavarage>, offer: Pro
       clock: SYSVAR_CLOCK_PUBKEY,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
       feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
-    }).remainingAccounts(partnerFeeRecipient ? [{
+    })
+    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
       pubkey: partnerFeeRecipient,
       isSigner: false,
       isWritable: true,
+    }, {
+      pubkey: partnerFeeMarkupAsPkey,
+      isSigner: false,
+      isWritable: false,
     }] : [])
     .instruction()
 
@@ -254,7 +267,15 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
     swapInstruction: Record<string, unknown>
     addressLookupTableAddresses: string[]
   }
-}, marginSOL: BN, leverage: number, randomSeed: Keypair, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey) => {
+}, marginSOL: BN, leverage: number, randomSeed: Keypair, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey, partnerFeeMarkup?: number) => {
+  let partnerFeeMarkupAsPkey
+  if (partnerFeeMarkup) {
+    const feeBuffer = Buffer.alloc(8)
+    feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup))
+    const feeBuffer32 = Buffer.alloc(32)
+    feeBuffer32.set(feeBuffer, 0)
+    partnerFeeMarkupAsPkey = new PublicKey(feeBuffer32)
+  }
   // assuming all token accounts are created prior
   const positionAccount = getPositionAccountPDA(lavarageProgram, offer, randomSeed.publicKey)
 
@@ -314,7 +335,7 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
 
   const addressLookupTableAccounts: AddressLookupTableAccount[] = []
 
-  addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(addressLookupTableAddresses)))
+  addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts([...addressLookupTableAddresses, getQuoteCurrencySpecificAddressLookupTable(quoteToken.toBase58()), '5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi'])))
 
   const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
 
@@ -329,14 +350,19 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
       systemProgram: SystemProgram.programId,
       clock: SYSVAR_CLOCK_PUBKEY,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
-      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
+      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF'), true, quoteTokenProgram),
       toTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, true, quoteTokenProgram),
-      tokenProgram: tokenProgram!,
-      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, offer.account.nodeWallet, true, tokenProgram),
-    }).remainingAccounts(partnerFeeRecipient ? [{
-      pubkey: partnerFeeRecipient,
+      tokenProgram: quoteTokenProgram!,
+      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, offer.account.nodeWallet, true, quoteTokenProgram),
+    })
+    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
+      pubkey: getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false, quoteTokenProgram),
       isSigner: false,
       isWritable: true,
+    }, {
+      pubkey: partnerFeeMarkupAsPkey,
+      isSigner: false,
+      isWritable: false,
     }] : [])
     .instruction()
 
@@ -391,7 +417,7 @@ export const createTpDelegate = async (lavarageProgram: Program<Lavarage> | Prog
     delegatedAccount: position.publicKey,
     systemProgram: SystemProgram.programId,
   }).remainingAccounts(partnerFeeRecipient ? [{
-    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, true),
+    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false),
     isSigner: false,
     isWritable: true,
   }] : [])
@@ -434,7 +460,7 @@ export const modifyTpDelegate = async (lavarageProgram: Program<Lavarage> | Prog
     delegatedAccount: position.publicKey,
     systemProgram: SystemProgram.programId,
   }).remainingAccounts(partnerFeeRecipient ? [{
-    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, true),
+    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false),
     isSigner: false,
     isWritable: true,
   }] : [])
@@ -488,6 +514,71 @@ export const removeTpDelegate = async (lavarageProgram: Program<Lavarage> | Prog
   return new VersionedTransaction(messageV0)
 }
 
+export const partialRepayV1 = async (lavarageProgram: Program<Lavarage>, position: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, repaymentBps: number) => {
+  const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
+  const pool = await lavarageProgram.account.pool.fetch(position.account.pool)
+  const positionAccountPDA = position.publicKey
+  const ix = await lavarageProgram.methods.tradingClosePartialRepaySol(new BN(repaymentBps)).accountsStrict({
+    systemProgram: SystemProgram.programId,
+    positionAccount: positionAccountPDA,
+    tradingPool: position.account.pool,
+    nodeWallet: pool.nodeWallet,
+    trader: lavarageProgram.provider.publicKey!,
+    clock: SYSVAR_CLOCK_PUBKEY,
+    randomAccountAsId: position.account.seed,
+    feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
+  }).instruction()
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [ix],
+  }).compileToV0Message()
+  return new VersionedTransaction(messageV0)
+}
+
+export const partialRepayV2 = async (lavarageProgram: Program<LavarageV2>, position: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, repaymentBps: number) => {
+  const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
+  const pool = await lavarageProgram.account.pool.fetch(position.account.pool)
+  const positionAccountPDA = position.publicKey
+  const ix = await lavarageProgram.methods.tradingPartialRepaySol(new BN(repaymentBps)).accountsStrict({
+    systemProgram: SystemProgram.programId,
+    positionAccount: positionAccountPDA,
+    tradingPool: position.account.pool,
+    nodeWallet: pool.nodeWallet,
+    trader: lavarageProgram.provider.publicKey!,
+    clock: SYSVAR_CLOCK_PUBKEY,
+    randomAccountAsId: position.account.seed,
+    fromTokenAccount: getAssociatedTokenAddressSync(pool.qtType, lavarageProgram.provider.publicKey!),
+    toTokenAccount: getAssociatedTokenAddressSync(pool.qtType, pool.nodeWallet, true),
+    mint: pool.qtType,
+    feeTokenAccount: getAssociatedTokenAddressSync(pool.qtType, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF')),
+    tokenProgram: TOKEN_PROGRAM_ID,
+  }).instruction()
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [ix],
+  }).compileToV0Message()
+
+  return new VersionedTransaction(messageV0)
+}
+
+/*
+
+        */
+
+
 export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position: ProgramAccount<{
   pool: PublicKey,
   seed: PublicKey,
@@ -505,7 +596,15 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
     addressLookupTableAddresses: string[]
   },
   quoteResponse: any
-}, partnerFeeRecipient?: PublicKey, profitFeeMarkup?: number) => {
+}, partnerFeeRecipient?: PublicKey, partnerFeeMarkup?: number) => {
+  let partnerFeeMarkupAsPkey
+  if (partnerFeeMarkup) {
+    const feeBuffer = Buffer.alloc(8)
+    feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup))
+    const feeBuffer32 = Buffer.alloc(32)
+    feeBuffer32.set(feeBuffer, 0)
+    partnerFeeMarkupAsPkey = new PublicKey(feeBuffer32)
+  }
   if (position.account.pool.toBase58() != offer.publicKey.toBase58()) throw "Mismatch offer"
   const pool = offer
   const poolPubKey = offer.publicKey
@@ -593,10 +692,15 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
       clock: SYSVAR_CLOCK_PUBKEY,
       randomAccountAsId: position.account.seed,
       feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
-    }).remainingAccounts(partnerFeeRecipient ? [{
+    })
+    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
       pubkey: partnerFeeRecipient,
       isSigner: false,
       isWritable: true,
+    }, {
+      pubkey: partnerFeeMarkupAsPkey,
+      isSigner: false,
+      isWritable: false,
     }] : [])
     .instruction()
   } else {
@@ -611,10 +715,15 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
       clock: SYSVAR_CLOCK_PUBKEY,
       randomAccountAsId: position.account.seed,
       feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
-    }).remainingAccounts(partnerFeeRecipient ? [{
+    })
+    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
       pubkey: partnerFeeRecipient,
       isSigner: false,
       isWritable: true,
+    }, {
+      pubkey: partnerFeeMarkupAsPkey,
+      isSigner: false,
+      isWritable: false,
     }] : [])
     .instruction()
     const { setupInstructions, swapInstruction: swapInstructionPayload, cleanupInstruction, addressLookupTableAddresses } = jupiterSellIx!
@@ -623,7 +732,7 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
       deserializeInstruction(swapInstructionPayload),
       deserializeInstruction(cleanupInstruction),
     ]
-    addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(addressLookupTableAddresses)))
+    addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(['5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi', ...addressLookupTableAddresses])))
   }
   const profit = new BN(jupInstruction.quoteResponse.outAmount).sub(position.account.amount).sub(position.account.userPaid)
   const allInstructions = [
@@ -631,13 +740,6 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
     closePositionIx,
     ...jupiterIxs,
     repaySolIx,
-    profitFeeMarkup && partnerFeeRecipient ? SystemProgram.transfer(
-      {
-        fromPubkey: lavarageProgram.provider.publicKey!,
-        toPubkey: partnerFeeRecipient!,
-        lamports: profit.toNumber() > 0 ? profit.mul(new BN(profitFeeMarkup * 10000)).div(new BN(10000)).toNumber() : 0
-      }
-    ) : null,
   ].filter(i => !!i)
 
   const messageV0 = new TransactionMessage({
@@ -668,7 +770,15 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
     addressLookupTableAddresses: string[]
   },
   quoteResponse: any
-}, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey, profitFeeMarkup?: number) => {
+}, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey, partnerFeeMarkup?: number) => {
+  let partnerFeeMarkupAsPkey
+  if (partnerFeeMarkup) {
+    const feeBuffer = Buffer.alloc(8)
+    feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup))
+    const feeBuffer32 = Buffer.alloc(32)
+    feeBuffer32.set(feeBuffer, 0)
+    partnerFeeMarkupAsPkey = new PublicKey(feeBuffer32)
+  }
   if (position.account.pool.toBase58() != offer.publicKey.toBase58()) throw "Mismatch offer"
   const pool = offer
   const poolPubKey = offer.publicKey
@@ -759,10 +869,15 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       tokenProgram: quoteTokenProgram!,
       toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
       mint: quoteToken,
-    }).remainingAccounts(partnerFeeRecipient ? [{
-      pubkey: partnerFeeRecipient,
+    })
+    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
+      pubkey: getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false, quoteTokenProgram),
       isSigner: false,
       isWritable: true,
+    }, {
+      pubkey: partnerFeeMarkupAsPkey,
+      isSigner: false,
+      isWritable: false,
     }] : [])
     .instruction()
   } else {
@@ -781,10 +896,15 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       tokenProgram: quoteTokenProgram!,
       toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
       mint: quoteToken,
-    }).remainingAccounts(partnerFeeRecipient ? [{
+    })
+    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
       pubkey: partnerFeeRecipient,
       isSigner: false,
       isWritable: true,
+    }, {
+      pubkey: partnerFeeMarkupAsPkey,
+      isSigner: false,
+      isWritable: false,
     }] : [])
     .instruction()
     const { setupInstructions, swapInstruction: swapInstructionPayload, cleanupInstruction, addressLookupTableAddresses } = jupiterSellIx!
@@ -793,7 +913,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
       swapInstructionPayload ? deserializeInstruction(swapInstructionPayload) : null,
       cleanupInstruction ? deserializeInstruction(cleanupInstruction) : null,
     ].filter(i => !!i)
-    addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(addressLookupTableAddresses)))
+    addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts([...addressLookupTableAddresses, getQuoteCurrencySpecificAddressLookupTable(quoteToken.toBase58()), '5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi'])))
   }
   const profit = new BN(jupInstruction.quoteResponse.outAmount).sub(position.account.amount).sub(position.account.userPaid)
   const allInstructions = [
@@ -801,14 +921,6 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
     closePositionIx,
     ...jupiterIxs,
     repaySolIx,
-    profitFeeMarkup && partnerFeeRecipient ? createTransferInstruction(
-      getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
-      partnerFeeRecipient,
-      lavarageProgram.provider.publicKey!,
-      profit.toNumber() > 0 ? profit.mul(new BN(profitFeeMarkup * 1000)).div(new BN(1000)).toNumber() : 0,
-      [],
-      quoteTokenProgram!,
-    ) : null,
   ].filter(i => !!i)
 
   const messageV0 = new TransactionMessage({
@@ -838,3 +950,13 @@ export const getDelegateAccounts = async (lavarageProgram: Program<Lavarage> | P
   }))
 }
 
+const getQuoteCurrencySpecificAddressLookupTable = (quoteCurrency: string) => {
+  switch (quoteCurrency) {
+    case 'J9BcrQfX4p9D1bvLzRNCbMDv8f44a9LFdeqNE4Yk2WMD':
+      return '2EdNtwVhyjkEgkKDC7GShfSSczZYMKLuJraeoJzG4E4R'
+    case 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v':
+      return 'CxLE1LRaZg2eYygzFfVRhgmSACsvqzyhySDrMHq3QSab'
+    default:
+      return '2EdNtwVhyjkEgkKDC7GShfSSczZYMKLuJraeoJzG4E4R'
+  }
+}
