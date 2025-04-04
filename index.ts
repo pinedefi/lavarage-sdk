@@ -3,7 +3,7 @@ import { Lavarage } from './idl/lavarage'
 import { Lavarage as LavarageV2 } from './idl/lavaragev2'
 import bs58 from 'bs58'
 import { AddressLookupTableAccount, ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_INSTRUCTIONS_PUBKEY, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
-import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
+import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstruction, createAssociatedTokenAccountInstruction, createTransferInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, TokenAccountNotFoundError, TokenInvalidAccountOwnerError } from '@solana/spl-token'
 
 
 export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
@@ -19,36 +19,22 @@ export function getPositionAccountPDA(lavarageProgram: Program<Lavarage> | Progr
 async function getTokenAccountOrCreateIfNotExists(lavarageProgram: Program<Lavarage> | Program<LavarageV2>, ownerPublicKey: PublicKey, tokenAddress: PublicKey, tokenProgram?: PublicKey) {
   const associatedTokenAddress = getAssociatedTokenAddressSync(tokenAddress, ownerPublicKey, true, tokenProgram, ASSOCIATED_TOKEN_PROGRAM_ID)
 
-  try {
-    const tokenAccount = await getAccount(lavarageProgram.provider.connection, associatedTokenAddress, 'finalized', tokenProgram)
-    return { account: tokenAccount, instruction: null }
-  }
-  catch (error) {
-    if (error instanceof TokenAccountNotFoundError || error instanceof TokenInvalidAccountOwnerError) {
-      const instruction = createAssociatedTokenAccountInstruction(
-        lavarageProgram.provider.publicKey!,
-        associatedTokenAddress,
-        ownerPublicKey,
-        tokenAddress,
-        tokenProgram,
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-      )
+  const instruction = createAssociatedTokenAccountIdempotentInstruction(
+    lavarageProgram.provider.publicKey!,
+    associatedTokenAddress,
+    ownerPublicKey,
+    tokenAddress,
+    tokenProgram,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  )
 
-      return {
-        account: {
-          address: associatedTokenAddress,
-        },
-        instruction,
-      }
-    }
-    else {
-      console.error('Error in getTokenAccountOrCreateIfNotExists: ', error)
-
-      return { account: null, instruction: null }
-    }
+  return {
+    account: {
+      address: associatedTokenAddress,
+    },
+    instruction,
   }
 }
-
 
 export * from './idl/lavarage'
 export * as IDLV2 from './idl/lavaragev2'
@@ -90,7 +76,7 @@ export const getClosedPositions = async (lavarageProgram: Program<Lavarage> | Pr
       bytes: bs58.encode(Uint8Array.from(valueBuffer2)),
     },
   },]))
-  .concat(await lavarageProgram.account.position.all([{ dataSize: 178 },
+    .concat(await lavarageProgram.account.position.all([{ dataSize: 178 },
     {
       memcmp: {
         offset: 40,
@@ -197,7 +183,7 @@ export const openTradeV1 = async (lavarageProgram: Program<Lavarage>, offer: Pro
   const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
 
   const tradingOpenBorrowInstruction = await lavarageProgram.methods
-    .tradingOpenBorrow(new BN((marginSOL.toNumber()*leverage).toFixed(0)), marginSOL)
+    .tradingOpenBorrow(new BN((marginSOL.toNumber() * leverage).toFixed(0)), marginSOL)
     .accountsStrict({
       nodeWallet: offer.account.nodeWallet,
       instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
@@ -340,7 +326,7 @@ export const openTradeV2 = async (lavarageProgram: Program<LavarageV2>, offer: P
   const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
 
   const tradingOpenBorrowInstruction = await lavarageProgram.methods
-    .tradingOpenBorrow(new BN((marginSOL.toNumber()*leverage).toFixed(0)), marginSOL)
+    .tradingOpenBorrow(new BN((marginSOL.toNumber() * leverage).toFixed(0)), marginSOL)
     .accountsStrict({
       nodeWallet: offer.account.nodeWallet,
       instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
@@ -411,17 +397,17 @@ export const createTpDelegate = async (lavarageProgram: Program<Lavarage> | Prog
 }>, tpPrice: BN, tpTolerence: BN, prioFee: BN, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey) => {
   const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
   const ix = await lavarageProgram.methods.tradingCreateTpDelegate(tpPrice, tpTolerence, new PublicKey('6dA5GTDPWxnw3gvjoy3vYBDyY7iETxcTJzt8RqF9i9MV'), new BN(10000))
-  .accountsStrict({
-    delegate: getPda([Buffer.from('delegate'), position.publicKey.toBuffer()], lavarageProgram.programId),
-    originalOperator: lavarageProgram.provider.publicKey!,
-    delegatedAccount: position.publicKey,
-    systemProgram: SystemProgram.programId,
-  }).remainingAccounts(partnerFeeRecipient ? [{
-    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false),
-    isSigner: false,
-    isWritable: true,
-  }] : [])
-  .instruction()
+    .accountsStrict({
+      delegate: getPda([Buffer.from('delegate'), position.publicKey.toBuffer()], lavarageProgram.programId),
+      originalOperator: lavarageProgram.provider.publicKey!,
+      delegatedAccount: position.publicKey,
+      systemProgram: SystemProgram.programId,
+    }).remainingAccounts(partnerFeeRecipient ? [{
+      pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false),
+      isSigner: false,
+      isWritable: true,
+    }] : [])
+    .instruction()
 
   const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
     microLamports: prioFee.toNumber(),
@@ -454,17 +440,17 @@ export const modifyTpDelegate = async (lavarageProgram: Program<Lavarage> | Prog
     systemProgram: SystemProgram.programId,
   }).instruction()
   const ix = await lavarageProgram.methods.tradingCreateTpDelegate(tpPrice, tpTolerence, new PublicKey('6dA5GTDPWxnw3gvjoy3vYBDyY7iETxcTJzt8RqF9i9MV'), new BN(10000))
-  .accountsStrict({
-    delegate: delegatePda,
-    originalOperator: lavarageProgram.provider.publicKey!,
-    delegatedAccount: position.publicKey,
-    systemProgram: SystemProgram.programId,
-  }).remainingAccounts(partnerFeeRecipient ? [{
-    pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false),
-    isSigner: false,
-    isWritable: true,
-  }] : [])
-  .instruction()
+    .accountsStrict({
+      delegate: delegatePda,
+      originalOperator: lavarageProgram.provider.publicKey!,
+      delegatedAccount: position.publicKey,
+      systemProgram: SystemProgram.programId,
+    }).remainingAccounts(partnerFeeRecipient ? [{
+      pubkey: quoteToken.toBase58() == 'So11111111111111111111111111111111111111112' ? partnerFeeRecipient : getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false),
+      isSigner: false,
+      isWritable: true,
+    }] : [])
+    .instruction()
 
   const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
     microLamports: prioFee.toNumber(),
@@ -497,7 +483,7 @@ export const removeTpDelegate = async (lavarageProgram: Program<Lavarage> | Prog
     delegatedAccount: position.publicKey,
     systemProgram: SystemProgram.programId,
   }).instruction()
-  
+
   const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
     microLamports: prioFee.toNumber(),
   })
@@ -574,11 +560,6 @@ export const partialRepayV2 = async (lavarageProgram: Program<LavarageV2>, posit
   return new VersionedTransaction(messageV0)
 }
 
-/*
-
-        */
-
-
 export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position: ProgramAccount<{
   pool: PublicKey,
   seed: PublicKey,
@@ -594,6 +575,7 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
     swapInstruction: Record<string, unknown>
     cleanupInstruction: Record<string, unknown>
     addressLookupTableAddresses: string[]
+    tokenLedgerInstruction?: Record<string, unknown>
   },
   quoteResponse: any
 }, partnerFeeRecipient?: PublicKey, partnerFeeMarkup?: number) => {
@@ -622,7 +604,7 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
 
   const jupiterSellIx = jupInstruction!.instructions
 
-  
+
   const deserializeInstruction = (instruction: any) => {
     return new TransactionInstruction({
       programId: new PublicKey(instruction.programId),
@@ -655,11 +637,11 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
 
   const addressLookupTableAccounts: AddressLookupTableAccount[] = []
 
-  
+
 
   const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
 
-  
+
 
   const closePositionIx = await lavarageProgram.methods
     .tradingCloseBorrowCollateral()
@@ -680,52 +662,52 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
 
   let repaySolIx: TransactionInstruction | null = null
   let jupiterIxs: TransactionInstruction[] = []
-  if (jupInstruction.instructions == undefined ) {
+  if (jupInstruction.instructions == undefined) {
     repaySolIx = await lavarageProgram.methods
-    .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9997))
-    .accountsStrict({
-      nodeWallet: pool.account.nodeWallet,
-      positionAccount: positionAccountPDA,
-      tradingPool: poolPubKey,
-      trader: lavarageProgram.provider.publicKey!,
-      systemProgram: SystemProgram.programId,
-      clock: SYSVAR_CLOCK_PUBKEY,
-      randomAccountAsId: position.account.seed,
-      feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
-    })
-    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
-      pubkey: partnerFeeRecipient,
-      isSigner: false,
-      isWritable: true,
-    }, {
-      pubkey: partnerFeeMarkupAsPkey,
-      isSigner: false,
-      isWritable: false,
-    }] : [])
-    .instruction()
+      .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9997))
+      .accountsStrict({
+        nodeWallet: pool.account.nodeWallet,
+        positionAccount: positionAccountPDA,
+        tradingPool: poolPubKey,
+        trader: lavarageProgram.provider.publicKey!,
+        systemProgram: SystemProgram.programId,
+        clock: SYSVAR_CLOCK_PUBKEY,
+        randomAccountAsId: position.account.seed,
+        feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
+      })
+      .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
+        pubkey: partnerFeeRecipient,
+        isSigner: false,
+        isWritable: true,
+      }, {
+        pubkey: partnerFeeMarkupAsPkey,
+        isSigner: false,
+        isWritable: false,
+      }] : [])
+      .instruction()
   } else {
     repaySolIx = await lavarageProgram.methods
-    .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9998))
-    .accountsStrict({
-      nodeWallet: pool.account.nodeWallet,
-      positionAccount: positionAccountPDA,
-      tradingPool: poolPubKey,
-      trader: lavarageProgram.provider.publicKey!,
-      systemProgram: SystemProgram.programId,
-      clock: SYSVAR_CLOCK_PUBKEY,
-      randomAccountAsId: position.account.seed,
-      feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
-    })
-    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
-      pubkey: partnerFeeRecipient,
-      isSigner: false,
-      isWritable: true,
-    }, {
-      pubkey: partnerFeeMarkupAsPkey,
-      isSigner: false,
-      isWritable: false,
-    }] : [])
-    .instruction()
+      .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9998))
+      .accountsStrict({
+        nodeWallet: pool.account.nodeWallet,
+        positionAccount: positionAccountPDA,
+        tradingPool: poolPubKey,
+        trader: lavarageProgram.provider.publicKey!,
+        systemProgram: SystemProgram.programId,
+        clock: SYSVAR_CLOCK_PUBKEY,
+        randomAccountAsId: position.account.seed,
+        feeReceipient: '6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF',
+      })
+      .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
+        pubkey: partnerFeeRecipient,
+        isSigner: false,
+        isWritable: true,
+      }, {
+        pubkey: partnerFeeMarkupAsPkey,
+        isSigner: false,
+        isWritable: false,
+      }] : [])
+      .instruction()
     const { setupInstructions, swapInstruction: swapInstructionPayload, cleanupInstruction, addressLookupTableAddresses } = jupiterSellIx!
     jupiterIxs = [
       ...setupInstructions.map(deserializeInstruction),
@@ -735,7 +717,17 @@ export const closeTradeV1 = async (lavarageProgram: Program<Lavarage>, position:
     addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts(['5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi', ...addressLookupTableAddresses])))
   }
   const profit = new BN(jupInstruction.quoteResponse.outAmount).sub(position.account.amount).sub(position.account.userPaid)
+
+  let createAssociatedTokenAccountInstruction = createAssociatedTokenAccountIdempotentInstruction(
+    lavarageProgram.provider.publicKey!,
+    toTokenAccount.account!.address,
+    lavarageProgram.provider.publicKey!,
+    offer.account.collateralType,
+    tokenProgram!,
+  )
   const allInstructions = [
+    jupInstruction.instructions?.tokenLedgerInstruction ? createAssociatedTokenAccountInstruction : null,
+    jupInstruction.instructions?.tokenLedgerInstruction ? deserializeInstruction(jupInstruction.instructions.tokenLedgerInstruction) : null,
     toTokenAccount.instruction!,
     closePositionIx,
     ...jupiterIxs,
@@ -768,6 +760,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
     swapInstruction: Record<string, unknown>
     cleanupInstruction: Record<string, unknown>
     addressLookupTableAddresses: string[]
+    tokenLedgerInstruction?: Record<string, unknown>
   },
   quoteResponse: any
 }, quoteToken: PublicKey, partnerFeeRecipient?: PublicKey, partnerFeeMarkup?: number) => {
@@ -799,7 +792,7 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
 
   const jupiterSellIx = jupInstruction!.instructions
 
-  
+
   const deserializeInstruction = (instruction: any) => {
     return new TransactionInstruction({
       programId: new PublicKey(instruction.programId),
@@ -853,60 +846,60 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
 
   let repaySolIx: TransactionInstruction | null = null
   let jupiterIxs: TransactionInstruction[] = []
-  if (jupInstruction.instructions == undefined ) {
+  if (jupInstruction.instructions == undefined) {
     repaySolIx = await lavarageProgram.methods
-    .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9997))
-    .accountsStrict({
-      nodeWallet: pool.account.nodeWallet,
-      positionAccount: positionAccountPDA,
-      tradingPool: poolPubKey,
-      trader: lavarageProgram.provider.publicKey!,
-      systemProgram: SystemProgram.programId,
-      clock: SYSVAR_CLOCK_PUBKEY,
-      randomAccountAsId: position.account.seed,
-      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF'), false, quoteTokenProgram),
-      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
-      tokenProgram: quoteTokenProgram!,
-      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
-      mint: quoteToken,
-    })
-    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
-      pubkey: getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false, quoteTokenProgram),
-      isSigner: false,
-      isWritable: true,
-    }, {
-      pubkey: partnerFeeMarkupAsPkey,
-      isSigner: false,
-      isWritable: false,
-    }] : [])
-    .instruction()
+      .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9997))
+      .accountsStrict({
+        nodeWallet: pool.account.nodeWallet,
+        positionAccount: positionAccountPDA,
+        tradingPool: poolPubKey,
+        trader: lavarageProgram.provider.publicKey!,
+        systemProgram: SystemProgram.programId,
+        clock: SYSVAR_CLOCK_PUBKEY,
+        randomAccountAsId: position.account.seed,
+        feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF'), false, quoteTokenProgram),
+        fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
+        tokenProgram: quoteTokenProgram!,
+        toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
+        mint: quoteToken,
+      })
+      .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
+        pubkey: getAssociatedTokenAddressSync(quoteToken, partnerFeeRecipient, false, quoteTokenProgram),
+        isSigner: false,
+        isWritable: true,
+      }, {
+        pubkey: partnerFeeMarkupAsPkey,
+        isSigner: false,
+        isWritable: false,
+      }] : [])
+      .instruction()
   } else {
     repaySolIx = await lavarageProgram.methods
-    .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9998))
-    .accountsStrict({
-      nodeWallet: pool.account.nodeWallet,
-      positionAccount: positionAccountPDA,
-      tradingPool: poolPubKey,
-      trader: lavarageProgram.provider.publicKey!,
-      systemProgram: SystemProgram.programId,
-      clock: SYSVAR_CLOCK_PUBKEY,
-      randomAccountAsId: position.account.seed,
-      feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF'), false, quoteTokenProgram),
-      fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
-      tokenProgram: quoteTokenProgram!,
-      toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
-      mint: quoteToken,
-    })
-    .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
-      pubkey: partnerFeeRecipient,
-      isSigner: false,
-      isWritable: true,
-    }, {
-      pubkey: partnerFeeMarkupAsPkey,
-      isSigner: false,
-      isWritable: false,
-    }] : [])
-    .instruction()
+      .tradingCloseRepaySol(new BN(jupInstruction.quoteResponse.outAmount), new BN(9998))
+      .accountsStrict({
+        nodeWallet: pool.account.nodeWallet,
+        positionAccount: positionAccountPDA,
+        tradingPool: poolPubKey,
+        trader: lavarageProgram.provider.publicKey!,
+        systemProgram: SystemProgram.programId,
+        clock: SYSVAR_CLOCK_PUBKEY,
+        randomAccountAsId: position.account.seed,
+        feeTokenAccount: getAssociatedTokenAddressSync(quoteToken, new PublicKey('6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF'), false, quoteTokenProgram),
+        fromTokenAccount: getAssociatedTokenAddressSync(quoteToken, lavarageProgram.provider.publicKey!, false, quoteTokenProgram),
+        tokenProgram: quoteTokenProgram!,
+        toTokenAccount: getAssociatedTokenAddressSync(quoteToken, pool.account.nodeWallet, true, quoteTokenProgram),
+        mint: quoteToken,
+      })
+      .remainingAccounts(partnerFeeRecipient && partnerFeeMarkupAsPkey ? [{
+        pubkey: partnerFeeRecipient,
+        isSigner: false,
+        isWritable: true,
+      }, {
+        pubkey: partnerFeeMarkupAsPkey,
+        isSigner: false,
+        isWritable: false,
+      }] : [])
+      .instruction()
     const { setupInstructions, swapInstruction: swapInstructionPayload, cleanupInstruction, addressLookupTableAddresses } = jupiterSellIx!
     jupiterIxs = [
       ...setupInstructions.filter(i => !!i).map(deserializeInstruction),
@@ -916,7 +909,17 @@ export const closeTradeV2 = async (lavarageProgram: Program<LavarageV2>, positio
     addressLookupTableAccounts.push(...(await getAddressLookupTableAccounts([...addressLookupTableAddresses, getQuoteCurrencySpecificAddressLookupTable(quoteToken.toBase58()), '5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi'])))
   }
   const profit = new BN(jupInstruction.quoteResponse.outAmount).sub(position.account.amount).sub(position.account.userPaid)
+
+  let createAssociatedTokenAccountInstruction = createAssociatedTokenAccountIdempotentInstruction(
+    lavarageProgram.provider.publicKey!,
+    toTokenAccount.account!.address,
+    lavarageProgram.provider.publicKey!,
+    offer.account.collateralType,
+    tokenProgram!,
+  )
   const allInstructions = [
+    jupInstruction.instructions?.tokenLedgerInstruction ? createAssociatedTokenAccountInstruction : null,
+    jupInstruction.instructions?.tokenLedgerInstruction ? deserializeInstruction(jupInstruction.instructions.tokenLedgerInstruction) : null,
     toTokenAccount.instruction!,
     closePositionIx,
     ...jupiterIxs,
@@ -940,7 +943,7 @@ export const getDelegateAccounts = async (lavarageProgram: Program<Lavarage> | P
       offset: 104,
       bytes: userPubKey.toBase58(),
     }
-  }] : undefined);  
+  }] : undefined);
   return delegateAccounts.map(d => ({
     ...d,
     parsed: {
@@ -959,4 +962,156 @@ const getQuoteCurrencySpecificAddressLookupTable = (quoteCurrency: string) => {
     default:
       return '2EdNtwVhyjkEgkKDC7GShfSSczZYMKLuJraeoJzG4E4R'
   }
+}
+
+export const splitPositionV2 = async (lavarageProgram: Program<LavarageV2>, position: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, offer: ProgramAccount<{
+  nodeWallet: PublicKey,
+  interestRate: number,
+  collateralType: PublicKey,
+}>, quoteToken: PublicKey, propotionBps: number) => {
+  const positionAccountPDA = position.publicKey
+
+  const newPosition1Seed = Keypair.generate().publicKey
+  const newPosition2Seed = Keypair.generate().publicKey
+
+  const newPosition1AccountPDA = getPositionAccountPDA(lavarageProgram, offer, newPosition1Seed)
+  const newPosition2AccountPDA = getPositionAccountPDA(lavarageProgram, offer, newPosition2Seed)
+
+  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(offer.account.collateralType)
+  const tokenProgram = mintAccount?.owner
+
+  const newPosition1TokenAccount = getAssociatedTokenAddressSync(offer.account.collateralType, newPosition1AccountPDA, true, tokenProgram)
+  const newPosition2TokenAccount = getAssociatedTokenAddressSync(offer.account.collateralType, newPosition2AccountPDA, true, tokenProgram)
+
+  const createNewPosition1TokenAccountIx = createAssociatedTokenAccountInstruction(
+    lavarageProgram.provider.publicKey!,
+    newPosition1TokenAccount,
+    newPosition1AccountPDA,
+    offer.account.collateralType,
+    tokenProgram!,
+  )
+
+  const createNewPosition2TokenAccountIx = createAssociatedTokenAccountInstruction(
+    lavarageProgram.provider.publicKey!,
+    newPosition2TokenAccount,
+    newPosition2AccountPDA,
+    offer.account.collateralType,
+    tokenProgram!,
+  )
+
+  const ix = await lavarageProgram.methods.tradingManagementSplitPosition(new BN(propotionBps), newPosition1Seed, newPosition2Seed)
+    .accountsStrict({
+      originalPosition: positionAccountPDA,
+      newPositionOne: newPosition1AccountPDA,
+      newPositionTwo: newPosition2AccountPDA,
+      trader: lavarageProgram.provider.publicKey!,
+      systemProgram: SystemProgram.programId,
+      mint: offer.account.collateralType,
+      tokenProgram: tokenProgram!,
+      originalPositionTokenAccount: getAssociatedTokenAddressSync(offer.account.collateralType, positionAccountPDA, true, tokenProgram),
+      newPositionTokenAccountOne: newPosition1TokenAccount,
+      newPositionTokenAccountTwo: newPosition2TokenAccount,
+    })
+    .instruction()
+
+  const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: 100000,
+  })
+
+  const allInstructions = [
+    createNewPosition1TokenAccountIx,
+    createNewPosition2TokenAccountIx,
+    ix,
+    computeBudgetIx,
+  ].filter(i => !!i)
+
+  const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: allInstructions,
+  }).compileToV0Message()
+
+  const tx = new VersionedTransaction(messageV0)
+
+  return tx
+}
+
+export const mergePositionV2 = async (lavarageProgram: Program<LavarageV2>, position1: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, position2: ProgramAccount<{
+  pool: PublicKey,
+  seed: PublicKey,
+  userPaid: BN,
+  amount: BN,
+}>, offer: ProgramAccount<{
+  nodeWallet: PublicKey,
+  interestRate: number,
+  collateralType: PublicKey,
+}>, quoteToken: PublicKey) => {
+  const positionAccountPDA1 = position1.publicKey
+  const positionAccountPDA2 = position2.publicKey
+
+  const newPositionSeed = Keypair.generate().publicKey
+
+  const newPositionAccountPDA = getPositionAccountPDA(lavarageProgram, offer, newPositionSeed)
+
+  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(offer.account.collateralType)
+  const tokenProgram = mintAccount?.owner
+
+  const newPositionTokenAccount = getAssociatedTokenAddressSync(offer.account.collateralType, newPositionAccountPDA, true, tokenProgram)
+
+  const createNewPositionTokenAccountIx = createAssociatedTokenAccountInstruction(
+    lavarageProgram.provider.publicKey!,
+    newPositionTokenAccount,
+    newPositionAccountPDA,
+    offer.account.collateralType,
+    tokenProgram!,
+  )
+
+  const ix = await lavarageProgram.methods.tradingManagementMergePositions(newPositionSeed)
+    .accountsStrict({
+      mergedPosition: newPositionAccountPDA,
+      positionOne: positionAccountPDA1,
+      positionTwo: positionAccountPDA2,
+      trader: lavarageProgram.provider.publicKey!,
+      systemProgram: SystemProgram.programId,
+      mint: offer.account.collateralType,
+      tokenProgram: tokenProgram!,
+      positionOneTokenAccount: getAssociatedTokenAddressSync(offer.account.collateralType, positionAccountPDA1, true, tokenProgram),
+      positionTwoTokenAccount: getAssociatedTokenAddressSync(offer.account.collateralType, positionAccountPDA2, true, tokenProgram),
+      mergedPositionTokenAccount: newPositionTokenAccount,
+    })
+    .instruction()
+
+  const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: 100000,
+  })
+
+  const allInstructions = [
+    createNewPositionTokenAccountIx,
+    ix,
+    computeBudgetIx,
+  ].filter(i => !!i)
+
+  const { blockhash } = await lavarageProgram.provider.connection.getLatestBlockhash('finalized')
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: allInstructions,
+  }).compileToV0Message()
+
+  const tx = new VersionedTransaction(messageV0)
+
+  return tx
 }

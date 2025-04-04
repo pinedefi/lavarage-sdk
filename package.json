@@ -1,6 +1,6 @@
 {
   "name": "@lavarage/sdk",
-  "version": "6.3.2",
+  "version": "6.4.7",
   "description": "Lavarage SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
