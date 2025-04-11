@@ -34,6 +34,8 @@ export const openPositionEvm = async (
     inchRouter,
     integratorFeeAddress = ZeroAddress,
     buyerContribution,
+    gasLimit,
+    gasPrice,
   }: {
     buyingCode: string;
     tokenCollateral: string;
@@ -42,6 +44,8 @@ export const openPositionEvm = async (
     inchRouter: string;
     integratorFeeAddress?: string;
     buyerContribution: BigNumberish;
+    gasLimit?: string | number;
+    gasPrice?: string | number;
   }
 ): Promise<ContractTransaction> => {
   const contract = new Contract(
@@ -50,6 +54,17 @@ export const openPositionEvm = async (
     signer
   );
 
+  const txOptions: {
+    value: BigNumberish;
+    gasLimit?: BigNumberish;
+    gasPrice?: BigNumberish;
+  } = {
+    value: buyerContribution,
+  };
+
+  if (gasLimit) txOptions.gasLimit = gasLimit;
+  if (gasPrice) txOptions.gasPrice = gasPrice;
+
   return contract.buy(
     buyingCode,
     tokenCollateral,
@@ -57,7 +72,7 @@ export const openPositionEvm = async (
     tokenHolder,
     inchRouter,
     integratorFeeAddress,
-    { value: buyerContribution }
+    txOptions
   );
 };
 
@@ -77,12 +92,16 @@ export const closePositionEvm = async (
     tokenHolder,
     inchRouter,
     integratorFeeAddress = ZeroAddress,
+    gasLimit,
+    gasPrice,
   }: {
     loanId: BigNumberish;
     sellingCode: string;
     tokenHolder: string;
     inchRouter: string;
     integratorFeeAddress?: string;
+    gasLimit?: string | number;
+    gasPrice?: string | number;
   }
 ): Promise<ContractTransaction> => {
   const contract = new Contract(
@@ -91,12 +110,18 @@ export const closePositionEvm = async (
     signer
   );
 
+  const txOptions: { gasLimit?: BigNumberish; gasPrice?: BigNumberish } = {};
+
+  if (gasLimit) txOptions.gasLimit = gasLimit;
+  if (gasPrice) txOptions.gasPrice = gasPrice;
+
   return contract.sell(
     loanId,
     sellingCode,
     tokenHolder,
     inchRouter,
-    integratorFeeAddress
+    integratorFeeAddress,
+    Object.keys(txOptions).length > 0 ? txOptions : {}
   );
 };
 
@@ -110,7 +135,7 @@ export const closePositionEvm = async (
 export async function getPositionsEvm(
   provider: Provider,
   borrowerOpsContractAddress: string,
-  fromBlock: number = 0
+  fromBlock: number = 42960845 // block contract was initialized
 ): Promise<BuyEvent[]> {
   const contract = new Contract(
     borrowerOpsContractAddress,
@@ -151,7 +176,7 @@ export async function getPositionsEvm(
 export async function getClosedPositionsEvm(
   provider: Provider,
   borrowerOpsContractAddress: string,
-  fromBlock: number = 0
+  fromBlock: number = 42960845 // block contract was initialized
 ): Promise<SellEvent[]> {
   const contract = new Contract(
     borrowerOpsContractAddress,
@@ -185,7 +210,7 @@ export async function getClosedPositionsEvm(
 export async function getLiquidatedPositionsEvm(
   provider: Provider,
   borrowerOpsContractAddress: string,
-  fromBlock: number = 0
+  fromBlock: number = 42960845 // block contract was initialized
 ): Promise<LiquidationEvent[]> {
   const contract = new Contract(
     borrowerOpsContractAddress,
