@@ -1,10 +1,9 @@
 import {
   BigNumberish,
   Contract,
-  ContractTransaction,
   Provider,
-  Signer,
   ZeroAddress,
+  PopulatedTransaction,
 } from "ethers";
 import { borrowerOperationsAbi } from "./abi/borrowerOperations";
 import { tokenHolderAbi } from "./abi/tokenHolderAbi";
@@ -17,14 +16,14 @@ import {
 } from "./interfaces/evm";
 
 /**
- * Opens a trading position on EVM chain
- * @param signer - Ethers signer
+ * Creates an unsigned transaction to open a trading position on EVM chain
+ * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @param params - Trading parameters
- * @returns Transaction object
+ * @returns Unsigned transaction object
  */
 export const openPositionEvm = async (
-  signer: Signer,
+  provider: Provider,
   borrowerOpsContractAddress: string,
   {
     buyingCode,
@@ -47,11 +46,11 @@ export const openPositionEvm = async (
     gasLimit?: string | number;
     gasPrice?: string | number;
   }
-): Promise<ContractTransaction> => {
+): Promise<PopulatedTransaction> => {
   const contract = new Contract(
     borrowerOpsContractAddress,
     borrowerOperationsAbi,
-    signer
+    provider
   );
 
   const txOptions: {
@@ -65,7 +64,7 @@ export const openPositionEvm = async (
   if (gasLimit) txOptions.gasLimit = gasLimit;
   if (gasPrice) txOptions.gasPrice = gasPrice;
 
-  return contract.buy(
+  return contract.buy.populateTransaction(
     buyingCode,
     tokenCollateral,
     borrowAmount,
@@ -77,14 +76,14 @@ export const openPositionEvm = async (
 };
 
 /**
- * Closes a trading position on EVM chain
- * @param signer - Ethers signer
+ * Creates an unsigned transaction to close a trading position on EVM chain
+ * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @param params - Trading parameters
- * @returns Transaction object
+ * @returns Unsigned transaction object
  */
 export const closePositionEvm = async (
-  signer: Signer,
+  provider: Provider,
   borrowerOpsContractAddress: string,
   {
     loanId,
@@ -103,11 +102,11 @@ export const closePositionEvm = async (
     gasLimit?: string | number;
     gasPrice?: string | number;
   }
-): Promise<ContractTransaction> => {
+): Promise<PopulatedTransaction> => {
   const contract = new Contract(
     borrowerOpsContractAddress,
     borrowerOperationsAbi,
-    signer
+    provider
   );
 
   const txOptions: { gasLimit?: BigNumberish; gasPrice?: BigNumberish } = {};
@@ -115,7 +114,7 @@ export const closePositionEvm = async (
   if (gasLimit) txOptions.gasLimit = gasLimit;
   if (gasPrice) txOptions.gasPrice = gasPrice;
 
-  return contract.sell(
+  return contract.sell.populateTransaction(
     loanId,
     sellingCode,
     tokenHolder,
