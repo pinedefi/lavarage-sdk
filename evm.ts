@@ -1,9 +1,9 @@
 import {
   BigNumberish,
   Contract,
+  ContractTransaction,
   Provider,
   ZeroAddress,
-  PopulatedTransaction,
 } from "ethers";
 import { borrowerOperationsAbi } from "./abi/borrowerOperations";
 import { tokenHolderAbi } from "./abi/tokenHolderAbi";
@@ -46,7 +46,7 @@ export const openPositionEvm = async (
     gasLimit?: string | number;
     gasPrice?: string | number;
   }
-): Promise<PopulatedTransaction> => {
+): Promise<ContractTransaction> => {
   const contract = new Contract(
     borrowerOpsContractAddress,
     borrowerOperationsAbi,
@@ -102,7 +102,7 @@ export const closePositionEvm = async (
     gasLimit?: string | number;
     gasPrice?: string | number;
   }
-): Promise<PopulatedTransaction> => {
+): Promise<ContractTransaction> => {
   const contract = new Contract(
     borrowerOpsContractAddress,
     borrowerOperationsAbi,
