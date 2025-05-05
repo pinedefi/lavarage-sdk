@@ -154,7 +154,7 @@ export async function getPositionsEvm(
       collateralAmount,
       initialMargin,
     } = event.args as unknown as any;
-    
+
     return {
       trader: buyer,
       tokenCollateral,
@@ -162,6 +162,7 @@ export async function getPositionsEvm(
       openingPositionSize,
       collateralAmount,
       initialMargin,
+      transactionHash: event.transactionHash,
     };
   });
 }
@@ -188,20 +189,16 @@ export async function getClosedPositionsEvm(
   const events = await contract.queryFilter(filter, fromBlock);
 
   return events.map((event: any) => {
-    const { 
-      buyer,
-      tokenCollateral, 
-      loanId, 
-      closingPositionSize, 
-      profit 
-    } = event.args as unknown as any;
-    
+    const { buyer, tokenCollateral, loanId, closingPositionSize, profit } =
+      event.args as unknown as any;
+
     return {
       trader: buyer,
       tokenCollateral,
       loanId,
       closingPositionSize,
       profit,
+      transactionHash: event.transactionHash,
     };
   });
 }
@@ -235,13 +232,14 @@ export async function getLiquidatedPositionsEvm(
       closingPositionSize,
       liquidatorRepaidAmount,
     } = event.args as unknown as any;
-    
+
     return {
       trader: borrower,
       tokenCollateral,
       loanId,
       closingPositionSize,
       liquidatorRepaidAmount,
+      transactionHash: event.transactionHash,
     };
   });
 }
