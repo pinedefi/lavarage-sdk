@@ -346,3 +346,21 @@ export async function getOffersEvm(
 
   return activeCollaterals;
 }
+
+/**
+ * Get the next loan ID from the TokenHolder contract
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @returns The next loan ID as a BigInt
+ */
+export async function getNextLoanIdEvm(
+  provider: Provider,
+  tokenHolderContractAddress: string
+): Promise<bigint> {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+  return contract.nextLoanId();
+}
