@@ -190,6 +190,7 @@ export const openTradeV1 = async (
   marginSOL: BN,
   leverage: number,
   randomSeed: Keypair,
+  tokenProgram: PublicKey,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number
 ) => {
@@ -207,11 +208,6 @@ export const openTradeV1 = async (
     offer,
     randomSeed.publicKey
   );
-
-  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(
-    offer.account.collateralType
-  );
-  const tokenProgram = mintAccount?.owner;
 
   const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(
     lavarageProgram,
@@ -383,6 +379,7 @@ export const openTradeV2 = async (
   leverage: number,
   randomSeed: Keypair,
   quoteToken: PublicKey,
+  tokenProgram: PublicKey,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number
 ) => {
@@ -400,11 +397,6 @@ export const openTradeV2 = async (
     offer,
     randomSeed.publicKey
   );
-
-  const mintAccount = await lavarageProgram.provider.connection.getAccountInfo(
-    offer.account.collateralType
-  );
-  const tokenProgram = mintAccount?.owner;
 
   const quoteMintAccount =
     await lavarageProgram.provider.connection.getAccountInfo(quoteToken);
