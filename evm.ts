@@ -145,26 +145,32 @@ export async function getPositionsEvm(
   const filter = contract.filters.Buy();
   const events = await contract.queryFilter(filter, fromBlock);
 
-  return events.map((event: any) => {
-    const {
-      buyer,
-      tokenCollateral,
-      loanId,
-      openingPositionSize,
-      collateralAmount,
-      initialMargin,
-    } = event.args as unknown as any;
+  return Promise.all(
+    events.map(async (event: any) => {
+      const {
+        buyer,
+        tokenCollateral,
+        loanId,
+        openingPositionSize,
+        collateralAmount,
+        initialMargin,
+      } = event.args as unknown as any;
 
-    return {
-      trader: buyer,
-      tokenCollateral,
-      loanId,
-      openingPositionSize,
-      collateralAmount,
-      initialMargin,
-      transactionHash: event.transactionHash,
-    };
-  });
+      const block = await provider.getBlock(event.blockNumber);
+      const timestamp = Number(block?.timestamp) || 0;
+
+      return {
+        trader: buyer,
+        tokenCollateral,
+        loanId,
+        openingPositionSize,
+        collateralAmount,
+        initialMargin,
+        transactionHash: event.transactionHash,
+        timestamp,
+      };
+    })
+  );
 }
 
 /**
@@ -188,19 +194,25 @@ export async function getClosedPositionsEvm(
   const filter = contract.filters.Sell();
   const events = await contract.queryFilter(filter, fromBlock);
 
-  return events.map((event: any) => {
-    const { buyer, tokenCollateral, loanId, closingPositionSize, profit } =
-      event.args as unknown as any;
+  return Promise.all(
+    events.map(async (event: any) => {
+      const { buyer, tokenCollateral, loanId, closingPositionSize, profit } =
+        event.args as unknown as any;
 
-    return {
-      trader: buyer,
-      tokenCollateral,
-      loanId,
-      closingPositionSize,
-      profit,
-      transactionHash: event.transactionHash,
-    };
-  });
+      const block = await provider.getBlock(event.blockNumber);
+      const timestamp = block ? Number(block.timestamp) : 0;
+
+      return {
+        trader: buyer,
+        tokenCollateral,
+        loanId,
+        closingPositionSize,
+        profit,
+        transactionHash: event.transactionHash,
+        timestamp,
+      };
+    })
+  );
 }
 
 /**
@@ -224,24 +236,30 @@ export async function getLiquidatedPositionsEvm(
   const filter = contract.filters.Liquidation();
   const events = await contract.queryFilter(filter, fromBlock);
 
-  return events.map((event: any) => {
-    const {
-      borrower,
-      tokenCollateral,
-      loanId,
-      closingPositionSize,
-      liquidatorRepaidAmount,
-    } = event.args as unknown as any;
+  return Promise.all(
+    events.map(async (event: any) => {
+      const {
+        borrower,
+        tokenCollateral,
+        loanId,
+        closingPositionSize,
+        liquidatorRepaidAmount,
+      } = event.args as unknown as any;
 
-    return {
-      trader: borrower,
-      tokenCollateral,
-      loanId,
-      closingPositionSize,
-      liquidatorRepaidAmount,
-      transactionHash: event.transactionHash,
-    };
-  });
+      const block = await provider.getBlock(event.blockNumber);
+      const timestamp = block ? Number(block.timestamp) : 0;
+
+      return {
+        trader: borrower,
+        tokenCollateral,
+        loanId,
+        closingPositionSize,
+        liquidatorRepaidAmount,
+        transactionHash: event.transactionHash,
+        timestamp,
+      };
+    })
+  );
 }
 
 /**
@@ -345,4 +363,40 @@ export async function getOffersEvm(
   }
 
   return activeCollaterals;
+}
+
+/**
+ * Get the opening fee percentage
+ * @param provider - Ethers provider
+ * @param borrowerOpsContractAddress - BorrowerOperations contract address
+ * @returns Opening fee as a BigNumber
+ */
+export async function getOpeningFeeEvm(
+  provider: Provider,
+  borrowerOpsContractAddress: string
+): Promise<bigint> {
+  const contract = new Contract(
+    borrowerOpsContractAddress,
+    borrowerOperationsAbi,
+    provider
+  );
+  return contract.openingFee();
+}
+
+/**
+ * Get the profit fee percentage
+ * @param provider - Ethers provider
+ * @param borrowerOpsContractAddress - BorrowerOperations contract address
+ * @returns Profit fee as a BigNumber
+ */
+export async function getProfitFeeEvm(
+  provider: Provider,
+  borrowerOpsContractAddress: string
+): Promise<bigint> {
+  const contract = new Contract(
+    borrowerOpsContractAddress,
+    borrowerOperationsAbi,
+    provider
+  );
+  return contract.profitFee();
 }
