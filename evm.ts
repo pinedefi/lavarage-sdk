@@ -400,3 +400,21 @@ export async function getProfitFeeEvm(
   );
   return contract.profitFee();
 }
+
+/**
+ * Get the token balance of the token holder contract
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @returns Token balance as a BigNumber
+ */
+export async function getTokenBalanceEvm(
+  provider: Provider,
+  tokenHolderContractAddress: string
+): Promise<bigint> {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+  return contract.getBalance();
+}
