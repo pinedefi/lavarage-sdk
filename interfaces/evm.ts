@@ -1,3 +1,5 @@
+import { Block } from "ethers";
+
 export interface Collateral {
   collateralAddress: string;
   maxLendPerToken: bigint;
@@ -23,6 +25,8 @@ export interface BuyEvent {
   openingPositionSize: bigint;
   collateralAmount: bigint;
   initialMargin: bigint;
+  transactionHash: string;
+  timestamp: number;
 }
 
 export interface SellEvent {
@@ -31,6 +35,8 @@ export interface SellEvent {
   loanId: bigint;
   closingPositionSize: bigint;
   profit: bigint;
+  transactionHash: string;
+  timestamp: number;
 }
 
 export interface LiquidationEvent {
@@ -39,4 +45,6 @@ export interface LiquidationEvent {
   loanId: bigint;
   closingPositionSize: bigint;
   liquidatorRepaidAmount: bigint;
+  transactionHash: string;
+  timestamp: number;
 }
