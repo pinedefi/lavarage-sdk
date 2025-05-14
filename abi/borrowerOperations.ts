@@ -221,7 +221,7 @@ export const borrowerOperationsAbi = [
     ],
     name: "sell",
     outputs: [],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
   {
