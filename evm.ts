@@ -418,3 +418,103 @@ export async function getTokenBalanceEvm(
   );
   return contract.getBalance();
 }
+
+/**
+ * Get the active loan count
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @returns Number of active loans
+ */
+export async function getActiveLoanCountEvm(
+  provider: Provider,
+  tokenHolderContractAddress: string
+): Promise<bigint> {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+  return contract.getActiveLoanCount();
+}
+
+/**
+ * Get a batch of active loans
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @param startIndex - Starting index in the activeLoanIds array
+ * @param batchSize - Number of loans to retrieve
+ * @returns Array of active loans
+ */
+export async function getActiveLoansBatchEvm(
+  provider: Provider,
+  tokenHolderContractAddress: string,
+  startIndex: BigNumberish,
+  batchSize: BigNumberish
+): Promise<Loan[]> {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+  return contract.getActiveLoansBatch(startIndex, batchSize);
+}
+
+/**
+ * Get all loans for a specific borrower
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @param borrowerAddress - Address of the borrower
+ * @returns Array of loans belonging to the borrower
+ */
+export async function getLoansByBorrowerEvm(
+  provider: Provider,
+  tokenHolderContractAddress: string,
+  borrowerAddress: string
+): Promise<Loan[]> {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+  return contract.getLoansByBorrower(borrowerAddress);
+}
+
+/**
+ * Get current exposure for a collateral
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @param collateralAddress - Address of the collateral token
+ * @returns Current exposure as a BigNumber
+ */
+export async function getCollateralExposureEvm(
+  provider: Provider,
+  tokenHolderContractAddress: string,
+  collateralAddress: string
+): Promise<bigint> {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+  return contract.getCollateralExposure(collateralAddress);
+}
+
+/**
+ * Get available exposure for a collateral
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @param collateralAddress - Address of the collateral token
+ * @returns Available exposure as a BigNumber
+ */
+export async function getAvailableExposureEvm(
+  provider: Provider,
+  tokenHolderContractAddress: string,
+  collateralAddress: string
+): Promise<bigint> {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+  return contract.getAvailableExposure(collateralAddress);
+}

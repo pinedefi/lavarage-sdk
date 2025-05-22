@@ -6,6 +6,8 @@ export interface Collateral {
   interestRate: bigint;
   active: boolean;
   minAmount: bigint;
+  maxExposure: bigint;
+  currentExposure: bigint;
 }
 
 export interface Loan {
