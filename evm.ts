@@ -354,12 +354,12 @@ export async function getOffersEvm(
 
   for (const address of collateralAddresses) {
     const collateral = await contract.collateralMapping(address);
-    if (collateral.active) {
-      activeCollaterals.push({
-        address,
-        collateral,
-      });
-    }
+    //if (collateral.active) {
+    activeCollaterals.push({
+      address,
+      collateral,
+    });
+    //}
   }
 
   return activeCollaterals;
