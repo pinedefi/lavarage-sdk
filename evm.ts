@@ -142,11 +142,19 @@ export async function getPositionsEvm(
     provider
   );
 
+  const currentBlock = await provider.getBlockNumber();
   const filter = contract.filters.Buy();
-  const events = await contract.queryFilter(filter, fromBlock);
+  const allEvents: any[] = [];
+  
+  // Query in chunks of 10,000 blocks
+  for (let start = fromBlock; start <= currentBlock; start += 10000) {
+    const end = Math.min(start + 9999, currentBlock);
+    const events = await contract.queryFilter(filter, start, end);
+    allEvents.push(...events);
+  }
 
   return Promise.all(
-    events.map(async (event: any) => {
+    allEvents.map(async (event: any) => {
       const {
         buyer,
         tokenCollateral,
@@ -191,11 +199,19 @@ export async function getClosedPositionsEvm(
     provider
   );
 
+  const currentBlock = await provider.getBlockNumber();
   const filter = contract.filters.Sell();
-  const events = await contract.queryFilter(filter, fromBlock);
+  const allEvents: any[] = [];
+  
+  // Query in chunks of 10,000 blocks
+  for (let start = fromBlock; start <= currentBlock; start += 10000) {
+    const end = Math.min(start + 9999, currentBlock);
+    const events = await contract.queryFilter(filter, start, end);
+    allEvents.push(...events);
+  }
 
   return Promise.all(
-    events.map(async (event: any) => {
+    allEvents.map(async (event: any) => {
       const { buyer, tokenCollateral, loanId, closingPositionSize, profit } =
         event.args as unknown as any;
 
@@ -233,11 +249,19 @@ export async function getLiquidatedPositionsEvm(
     provider
   );
 
+  const currentBlock = await provider.getBlockNumber();
   const filter = contract.filters.Liquidation();
-  const events = await contract.queryFilter(filter, fromBlock);
+  const allEvents: any[] = [];
+  
+  // Query in chunks of 10,000 blocks
+  for (let start = fromBlock; start <= currentBlock; start += 10000) {
+    const end = Math.min(start + 9999, currentBlock);
+    const events = await contract.queryFilter(filter, start, end);
+    allEvents.push(...events);
+  }
 
   return Promise.all(
-    events.map(async (event: any) => {
+    allEvents.map(async (event: any) => {
       const {
         borrower,
         tokenCollateral,
