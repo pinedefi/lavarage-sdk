@@ -27,6 +27,9 @@ import {
   TokenInvalidAccountOwnerError,
 } from "@solana/spl-token";
 
+export * from "./evm";
+export * as lending from "./lending";
+
 export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
   const seedsBuffer = Array.isArray(seed) ? seed : [seed];
 
@@ -1646,5 +1649,3 @@ export const mergePositionV2 = async (
 
   return tx;
 };
-
-export * from "./evm";
