@@ -125,60 +125,46 @@ export const closePositionEvm = async (
 };
 
 /**
- * Get all positions from events
+ * Get all positions from active loans
  * @param provider - Ethers provider
- * @param borrowerOpsContractAddress - BorrowerOperations contract address
- * @param fromBlock - Block to start searching from
- * @returns Array of Buy events representing positions
+ * @param tokenHolderContractAddress - TokenHolder contract address
+ * @returns Array of active positions
  */
 export async function getPositionsEvm(
   provider: Provider,
-  borrowerOpsContractAddress: string,
-  fromBlock: number = 42960845 // block contract was initialized
+  tokenHolderContractAddress: string
 ): Promise<BuyEvent[]> {
   const contract = new Contract(
-    borrowerOpsContractAddress,
-    borrowerOperationsAbi,
+    tokenHolderContractAddress,
+    tokenHolderAbi,
     provider
   );
 
-  const currentBlock = await provider.getBlockNumber();
-  const filter = contract.filters.Buy();
-  const allEvents: any[] = [];
-  
-  // Query in chunks of 10,000 blocks
-  for (let start = fromBlock; start <= currentBlock; start += 10000) {
-    const end = Math.min(start + 9999, currentBlock);
-    const events = await contract.queryFilter(filter, start, end);
-    allEvents.push(...events);
+  const activeLoanCount = await contract.getActiveLoanCount();
+  const batchSize = 100; // Process in batches to avoid gas limits
+  const positions: BuyEvent[] = [];
+
+  // Fetch loans in batches
+  for (let i = 0; i < activeLoanCount; i += batchSize) {
+    const currentBatchSize = Math.min(Number(activeLoanCount) - i, batchSize);
+    const loans = await contract.getActiveLoansBatch(i, currentBatchSize);
+
+    // Convert each loan to a BuyEvent format
+    for (const loan of loans) {
+      positions.push({
+        trader: loan.borrower,
+        tokenCollateral: loan.collateral.collateralAddress,
+        loanId: loan.id,
+        openingPositionSize: loan.amount + loan.userPaid,
+        collateralAmount: loan.collateralAmount,
+        initialMargin: loan.userPaid,
+        transactionHash: "", // Not available from loan data
+        timestamp: Number(loan.timestamp)
+      });
+    }
   }
 
-  return Promise.all(
-    allEvents.map(async (event: any) => {
-      const {
-        buyer,
-        tokenCollateral,
-        loanId,
-        openingPositionSize,
-        collateralAmount,
-        initialMargin,
-      } = event.args as unknown as any;
-
-      const block = await provider.getBlock(event.blockNumber);
-      const timestamp = Number(block?.timestamp) || 0;
-
-      return {
-        trader: buyer,
-        tokenCollateral,
-        loanId,
-        openingPositionSize,
-        collateralAmount,
-        initialMargin,
-        transactionHash: event.transactionHash,
-        timestamp,
-      };
-    })
-  );
+  return positions;
 }
 
 /**
