@@ -1,15 +1,20 @@
-import { BN, Program } from "@coral-xyz/anchor";
+import { BN, Instruction, Program } from "@coral-xyz/anchor";
 import { Lavarage } from "./idl/lavarage";
 import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
 import {
+  ComputeBudgetProgram,
+  Keypair,
   PublicKey,
   SystemProgram,
+  TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
+  createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
+  getMint,
 } from "@solana/spl-token";
 import { getPda } from "./index";
 
@@ -43,57 +48,67 @@ export function getTradingPoolPDA(
   );
 }
 
-export async function createNodeWallet(
+const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+  microLamports: 150000,
+});
+
+async function createNodeWallet(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
-    nodeWallet: PublicKey;
     operator: PublicKey;
-    mint: string;
+    mint?: string; // Required for V2, optional for V1
     liquidationLtv?: number; // Required for V2, optional for V1
   }
-): Promise<VersionedTransaction> {
+): Promise<{
+  instruction: TransactionInstruction;
+  nodeWallet: Keypair | undefined;
+}> {
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  let instruction;
+  let instruction, nodeWallet;
 
   // Check if this is V2 program (has liquidationLtv parameter)
-  if (params.liquidationLtv !== undefined) {
+  if (params.liquidationLtv !== undefined && params.mint !== undefined) {
+    nodeWallet = getNodeWalletPDA(
+      new PublicKey(params.operator),
+      new PublicKey(params.mint),
+      lavarageProgram.programId
+    );
     // V2 version
     instruction = await (lavarageProgram as Program<LavarageV2>).methods
       .lpOperatorCreateNodeWallet(new BN(params.liquidationLtv))
       .accounts({
-        nodeWallet: params.nodeWallet,
-        operator: params.operator,
+        nodeWallet: nodeWallet,
+        operator: new PublicKey(params.operator),
         systemProgram: SystemProgram.programId,
         mint: new PublicKey(params.mint),
       })
       .instruction();
   } else {
+    nodeWallet = Keypair.generate();
     // V1 version
     instruction = await (lavarageProgram as Program<Lavarage>).methods
       .lpOperatorCreateNodeWallet()
       .accounts({
-        nodeWallet: params.nodeWallet,
-        operator: params.operator,
+        nodeWallet: nodeWallet.publicKey,
+        operator: new PublicKey(params.operator),
         systemProgram: SystemProgram.programId,
       })
       .instruction();
   }
 
-  const messageV0 = new TransactionMessage({
-    payerKey: lavarageProgram.provider.publicKey!,
-    recentBlockhash: blockhash,
-    instructions: [instruction],
-  }).compileToV0Message();
-
-  return new VersionedTransaction(messageV0);
+  return {
+    instruction,
+    nodeWallet: nodeWallet instanceof Keypair ? nodeWallet : undefined,
+  };
 }
 
 export async function depositFunds(
   lavarageProgram: Program<Lavarage>,
   params: {
     nodeWallet: PublicKey;
+    mint?: string; // Required for V2, optional for V1
     funder: PublicKey;
     amount: number;
   }
@@ -101,7 +116,9 @@ export async function depositFunds(
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  const instruction = await lavarageProgram.methods
+  let instruction;
+  if (params.mint === undefined) {
+    instruction = await lavarageProgram.methods
     .lpOperatorFundNodeWallet(new BN(params.amount))
     .accounts({
       nodeWallet: params.nodeWallet,
@@ -109,11 +126,26 @@ export async function depositFunds(
       systemProgram: SystemProgram.programId,
     })
     .instruction();
+  } else {
+    const mintPubkey = new PublicKey(params.mint);
+    const mintOwner = await lavarageProgram.provider.connection.getAccountInfo(mintPubkey);
+    const mintAccount = await getMint(lavarageProgram.provider.connection, mintPubkey, 'confirmed', mintOwner?.owner);
+    instruction = createTransferCheckedInstruction(
+      getAssociatedTokenAddressSync(mintPubkey, new PublicKey(params.funder), true, mintOwner?.owner),
+      new PublicKey(params.mint),
+      getAssociatedTokenAddressSync(mintPubkey, new PublicKey(params.nodeWallet), true, mintOwner?.owner),
+      lavarageProgram.provider.publicKey!,
+      params.amount,
+      mintAccount.decimals,
+      [],
+      mintOwner?.owner
+    );
+  }
 
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [instruction],
+    instructions: [instruction, computeFeeIx],
   }).compileToV0Message();
 
   return new VersionedTransaction(messageV0);
@@ -142,7 +174,7 @@ export async function withdrawFundsV1(
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [instruction],
+    instructions: [instruction, computeFeeIx],
   }).compileToV0Message();
 
   return new VersionedTransaction(messageV0);
@@ -188,7 +220,7 @@ export async function withdrawFundsV2(
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [instruction],
+    instructions: [instruction, computeFeeIx],
   }).compileToV0Message();
 
   return new VersionedTransaction(messageV0);
@@ -225,16 +257,31 @@ export async function withdrawFunds(
   }
 }
 
-export async function createTradingPool(
+export async function createOffer(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
     nodeWallet: string;
-    mint: string;
+    mint?: string;
     interestRate: number;
+    maxExposure: number;
   }
 ): Promise<VersionedTransaction> {
+
+  const nodeWalletAccount = await lavarageProgram.provider.connection.getAccountInfo(new PublicKey(params.nodeWallet));
+  let nodeWalletSigner, createNodeWalletInstruction;
+  if (!nodeWalletAccount) {
+    // create node wallet
+    const { instruction, nodeWallet } = await createNodeWallet(lavarageProgram, {
+      operator: new PublicKey(params.poolOwner.toBase58()),
+      mint: params.mint,
+      liquidationLtv: 90,
+    });
+    nodeWalletSigner = nodeWallet;
+    createNodeWalletInstruction = instruction;
+  }
+
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
@@ -244,7 +291,17 @@ export async function createTradingPool(
       tradingPool: params.tradingPool,
       operator: params.poolOwner,
       nodeWallet: new PublicKey(params.nodeWallet),
-      mint: new PublicKey(params.mint),
+      mint: params.mint ? new PublicKey(params.mint) : undefined,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+  
+  const updateMaxExposureInstruction = await lavarageProgram.methods
+    .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
+    .accounts({
+      tradingPool: params.tradingPool,
+      nodeWallet: new PublicKey(params.nodeWallet),
+      operator: params.poolOwner,
       systemProgram: SystemProgram.programId,
     })
     .instruction();
@@ -252,8 +309,17 @@ export async function createTradingPool(
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [instruction],
+    instructions: [createNodeWalletInstruction === undefined ? null : createNodeWalletInstruction, instruction, updateMaxExposureInstruction, computeFeeIx].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
+
+  if (nodeWalletSigner) {
+    const transaction = new VersionedTransaction(messageV0);
+    transaction.addSignature(
+      nodeWalletSigner.publicKey,
+      nodeWalletSigner.secretKey
+    );
+    return transaction;
+  }
 
   return new VersionedTransaction(messageV0);
 }
@@ -320,7 +386,7 @@ export async function updateInterestRate(
   return new VersionedTransaction(messageV0);
 }
 
-export async function createOffer(
+export async function updateOffer(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
     tradingPool: PublicKey;
@@ -329,7 +395,7 @@ export async function createOffer(
     mint: string;
     interestRate: number;
     maxExposure: number;
-    includeCreatePool?: boolean; // Optional flag to include pool creation
+    //includeCreatePool?: boolean; // Optional flag to include pool creation
   }
 ): Promise<VersionedTransaction> {
   const { blockhash } =
@@ -337,21 +403,21 @@ export async function createOffer(
 
   const instructions = [];
 
-  // Optionally include pool creation instruction
-  if (params.includeCreatePool) {
-    const createPoolInstruction = await lavarageProgram.methods
-      .lpOperatorCreateTradingPool(new BN(params.interestRate))
-      .accounts({
-        tradingPool: params.tradingPool,
-        operator: params.poolOwner,
-        nodeWallet: new PublicKey(params.nodeWallet),
-        mint: new PublicKey(params.mint),
-        systemProgram: SystemProgram.programId,
-      })
-      .instruction();
+  // // Optionally include pool creation instruction
+  // if (params.includeCreatePool) {
+  //   const createPoolInstruction = await lavarageProgram.methods
+  //     .lpOperatorCreateTradingPool(new BN(params.interestRate))
+  //     .accounts({
+  //       tradingPool: params.tradingPool,
+  //       operator: params.poolOwner,
+  //       nodeWallet: new PublicKey(params.nodeWallet),
+  //       mint: new PublicKey(params.mint),
+  //       systemProgram: SystemProgram.programId,
+  //     })
+  //     .instruction();
 
-    instructions.push(createPoolInstruction);
-  }
+  //   instructions.push(createPoolInstruction);
+  // }
 
   // Update max exposure instruction
   const updateMaxExposureInstruction = await lavarageProgram.methods
