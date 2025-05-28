@@ -1,12 +1,11 @@
 import { BN, Program } from "@coral-xyz/anchor";
 import { Lavarage } from "./idl/lavarage";
 import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
-import bs58 from "bs58";
 import {
-  Keypair,
   PublicKey,
   SystemProgram,
-  TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { getPda } from "./index";
 
@@ -34,7 +33,10 @@ export async function createTradingPool(
     mint: string;
     interestRate: number;
   }
-): Promise<TransactionInstruction> {
+): Promise<VersionedTransaction> {
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
   const instruction = await lavarageProgram.methods
     .lpOperatorCreateTradingPool(new BN(params.interestRate))
     .accounts({
@@ -46,7 +48,13 @@ export async function createTradingPool(
     })
     .instruction();
 
-  return instruction;
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [instruction],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(messageV0);
 }
 
 export async function updateMaxExposure(
@@ -57,7 +65,10 @@ export async function updateMaxExposure(
     poolOwner: PublicKey;
     maxExposure: number;
   }
-): Promise<TransactionInstruction> {
+): Promise<VersionedTransaction> {
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
   const instruction = await lavarageProgram.methods
     .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
     .accounts({
@@ -68,13 +79,16 @@ export async function updateMaxExposure(
     })
     .instruction();
 
-  return instruction;
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [instruction],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(messageV0);
 }
 
-/**
- * Update interest rate transaction
- */
-export async function updateInterestRateTransaction(
+export async function updateInterestRate(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
     tradingPool: PublicKey;
@@ -82,7 +96,10 @@ export async function updateInterestRateTransaction(
     poolOwner: PublicKey;
     interestRate: number;
   }
-): Promise<TransactionInstruction> {
+): Promise<VersionedTransaction> {
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
   const instruction = await lavarageProgram.methods
     .lpOperatorUpdateInterestRate(new BN(params.interestRate))
     .accounts({
@@ -93,5 +110,80 @@ export async function updateInterestRateTransaction(
     })
     .instruction();
 
-  return instruction;
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [instruction],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(messageV0);
+}
+
+export async function createOffer(
+  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  params: {
+    tradingPool: PublicKey;
+    poolOwner: PublicKey;
+    nodeWallet: string;
+    mint: string;
+    interestRate: number;
+    maxExposure: number;
+    includeCreatePool?: boolean; // Optional flag to include pool creation
+  }
+): Promise<VersionedTransaction> {
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
+  const instructions = [];
+
+  // Optionally include pool creation instruction
+  if (params.includeCreatePool) {
+    const createPoolInstruction = await lavarageProgram.methods
+      .lpOperatorCreateTradingPool(new BN(params.interestRate))
+      .accounts({
+        tradingPool: params.tradingPool,
+        operator: params.poolOwner,
+        nodeWallet: new PublicKey(params.nodeWallet),
+        mint: new PublicKey(params.mint),
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+
+    instructions.push(createPoolInstruction);
+  }
+
+  // Update max exposure instruction
+  const updateMaxExposureInstruction = await lavarageProgram.methods
+    .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
+    .accounts({
+      tradingPool: params.tradingPool,
+      nodeWallet: new PublicKey(params.nodeWallet),
+      operator: params.poolOwner,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
+  // Update interest rate instruction
+  const updateInterestRateInstruction = await lavarageProgram.methods
+    .lpOperatorUpdateInterestRate(new BN(params.interestRate))
+    .accounts({
+      tradingPool: params.tradingPool,
+      nodeWallet: new PublicKey(params.nodeWallet),
+      operator: params.poolOwner,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
+  instructions.push(
+    updateMaxExposureInstruction,
+    updateInterestRateInstruction
+  );
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions,
+  }).compileToV0Message();
+
+  return new VersionedTransaction(messageV0);
 }
