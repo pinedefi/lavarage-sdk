@@ -528,3 +528,46 @@ export async function getAvailableExposureEvm(
   );
   return contract.getAvailableExposure(collateralAddress);
 }
+
+/**
+ * Update max lend per token for multiple collaterals in batch
+ * @param provider - Ethers provider
+ * @param tokenHolderContractAddress - Address of the TokenHolder contract
+ * @param collateralAddresses - Array of collateral token addresses
+ * @param newMaxLendPerTokens - Array of new max lend per token values
+ * @param gasLimit - Optional gas limit
+ * @param gasPrice - Optional gas price
+ * @returns Unsigned transaction object
+ */
+export const updateMaxLendPerTokenBatchEvm = async (
+  provider: Provider,
+  tokenHolderContractAddress: string,
+  {
+    collateralAddresses,
+    newMaxLendPerTokens,
+    gasLimit,
+    gasPrice,
+  }: {
+    collateralAddresses: string[];
+    newMaxLendPerTokens: BigNumberish[];
+    gasLimit?: string | number;
+    gasPrice?: string | number;
+  }
+): Promise<ContractTransaction> => {
+  const contract = new Contract(
+    tokenHolderContractAddress,
+    tokenHolderAbi,
+    provider
+  );
+
+  const txOptions: { gasLimit?: BigNumberish; gasPrice?: BigNumberish } = {};
+
+  if (gasLimit) txOptions.gasLimit = gasLimit;
+  if (gasPrice) txOptions.gasPrice = gasPrice;
+
+  return contract.updateMaxLendPerTokenBulk.populateTransaction(
+    collateralAddresses,
+    newMaxLendPerTokens,
+    Object.keys(txOptions).length > 0 ? txOptions : {}
+  );
+};
