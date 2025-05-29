@@ -52,7 +52,7 @@ const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
   microLamports: 150000,
 });
 
-async function createNodeWallet(
+export async function createNodeWallet(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
     operator: PublicKey;
@@ -119,21 +119,38 @@ export async function depositFunds(
   let instruction;
   if (params.mint === undefined) {
     instruction = await lavarageProgram.methods
-    .lpOperatorFundNodeWallet(new BN(params.amount))
-    .accounts({
-      nodeWallet: params.nodeWallet,
-      funder: params.funder,
-      systemProgram: SystemProgram.programId,
-    })
-    .instruction();
+      .lpOperatorFundNodeWallet(new BN(params.amount))
+      .accounts({
+        nodeWallet: params.nodeWallet,
+        funder: params.funder,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
   } else {
     const mintPubkey = new PublicKey(params.mint);
-    const mintOwner = await lavarageProgram.provider.connection.getAccountInfo(mintPubkey);
-    const mintAccount = await getMint(lavarageProgram.provider.connection, mintPubkey, 'confirmed', mintOwner?.owner);
+    const mintOwner = await lavarageProgram.provider.connection.getAccountInfo(
+      mintPubkey
+    );
+    const mintAccount = await getMint(
+      lavarageProgram.provider.connection,
+      mintPubkey,
+      "confirmed",
+      mintOwner?.owner
+    );
     instruction = createTransferCheckedInstruction(
-      getAssociatedTokenAddressSync(mintPubkey, new PublicKey(params.funder), true, mintOwner?.owner),
+      getAssociatedTokenAddressSync(
+        mintPubkey,
+        new PublicKey(params.funder),
+        true,
+        mintOwner?.owner
+      ),
       new PublicKey(params.mint),
-      getAssociatedTokenAddressSync(mintPubkey, new PublicKey(params.nodeWallet), true, mintOwner?.owner),
+      getAssociatedTokenAddressSync(
+        mintPubkey,
+        new PublicKey(params.nodeWallet),
+        true,
+        mintOwner?.owner
+      ),
       lavarageProgram.provider.publicKey!,
       params.amount,
       mintAccount.decimals,
@@ -268,16 +285,21 @@ export async function createOffer(
     maxExposure: number;
   }
 ): Promise<VersionedTransaction> {
-
-  const nodeWalletAccount = await lavarageProgram.provider.connection.getAccountInfo(new PublicKey(params.nodeWallet));
+  const nodeWalletAccount =
+    await lavarageProgram.provider.connection.getAccountInfo(
+      new PublicKey(params.nodeWallet)
+    );
   let nodeWalletSigner, createNodeWalletInstruction;
   if (!nodeWalletAccount) {
     // create node wallet
-    const { instruction, nodeWallet } = await createNodeWallet(lavarageProgram, {
-      operator: new PublicKey(params.poolOwner.toBase58()),
-      mint: params.mint,
-      liquidationLtv: 90,
-    });
+    const { instruction, nodeWallet } = await createNodeWallet(
+      lavarageProgram,
+      {
+        operator: new PublicKey(params.poolOwner.toBase58()),
+        mint: params.mint,
+        liquidationLtv: 90,
+      }
+    );
     nodeWalletSigner = nodeWallet;
     createNodeWalletInstruction = instruction;
   }
@@ -295,7 +317,7 @@ export async function createOffer(
       systemProgram: SystemProgram.programId,
     })
     .instruction();
-  
+
   const updateMaxExposureInstruction = await lavarageProgram.methods
     .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
     .accounts({
@@ -309,7 +331,14 @@ export async function createOffer(
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [createNodeWalletInstruction === undefined ? null : createNodeWalletInstruction, instruction, updateMaxExposureInstruction, computeFeeIx].filter(Boolean) as TransactionInstruction[],
+    instructions: [
+      createNodeWalletInstruction === undefined
+        ? null
+        : createNodeWalletInstruction,
+      instruction,
+      updateMaxExposureInstruction,
+      computeFeeIx,
+    ].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
 
   if (nodeWalletSigner) {

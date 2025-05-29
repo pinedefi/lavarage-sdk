@@ -28,7 +28,7 @@ import {
 } from "@solana/spl-token";
 
 export * from "./evm";
-export * as lending from "./lending";
+export * from "./lending";
 
 export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
   const seedsBuffer = Array.isArray(seed) ? seed : [seed];
