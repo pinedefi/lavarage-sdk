@@ -68,8 +68,8 @@ async function createNodeWallet(
 
   let instruction, nodeWallet;
 
-  // Check if this is V2 program (has liquidationLtv parameter)
-  if (params.liquidationLtv !== undefined && params.mint !== undefined) {
+  // Check if this is V2 program (has mint parameter)
+  if (params.mint !== undefined) {
     nodeWallet = getNodeWalletPDA(
       new PublicKey(params.operator),
       new PublicKey(params.mint),
