@@ -62,6 +62,7 @@ async function createNodeWallet(
 ): Promise<{
   instruction: TransactionInstruction;
   nodeWallet: Keypair | undefined;
+  nodeWalletAccount: PublicKey;
 }> {
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
@@ -101,6 +102,7 @@ async function createNodeWallet(
   return {
     instruction,
     nodeWallet: nodeWallet instanceof Keypair ? nodeWallet : undefined,
+    nodeWalletAccount: nodeWallet instanceof Keypair ? nodeWallet.publicKey : nodeWallet,
   };
 }
 
@@ -262,24 +264,28 @@ export async function createOffer(
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
-    nodeWallet: string;
     mint?: string;
     interestRate: number;
     maxExposure: number;
   }
 ): Promise<VersionedTransaction> {
+  const nodeWallets = await lavarageProgram.account.nodeWallet.all();
 
-  const nodeWalletAccount = await lavarageProgram.provider.connection.getAccountInfo(new PublicKey(params.nodeWallet));
-  let nodeWalletSigner, createNodeWalletInstruction;
+  const nodeWalletAccount = nodeWallets.find(wallet => wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner)));
+
+  let nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
   if (!nodeWalletAccount) {
     // create node wallet
-    const { instruction, nodeWallet } = await createNodeWallet(lavarageProgram, {
+    const { instruction, nodeWallet, nodeWalletAccount: nodeWalletPublicKey } = await createNodeWallet(lavarageProgram, {
       operator: new PublicKey(params.poolOwner.toBase58()),
       mint: params.mint,
       liquidationLtv: 90,
     });
     nodeWalletSigner = nodeWallet;
     createNodeWalletInstruction = instruction;
+    nodeWalletPubKey = nodeWalletPublicKey;
+  } else {
+    nodeWalletPubKey = nodeWalletAccount.publicKey;
   }
 
   const { blockhash } =
@@ -290,7 +296,7 @@ export async function createOffer(
     .accounts({
       tradingPool: params.tradingPool,
       operator: params.poolOwner,
-      nodeWallet: new PublicKey(params.nodeWallet),
+      nodeWallet: nodeWalletPubKey,
       mint: params.mint ? new PublicKey(params.mint) : undefined,
       systemProgram: SystemProgram.programId,
     })
@@ -300,7 +306,7 @@ export async function createOffer(
     .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
     .accounts({
       tradingPool: params.tradingPool,
-      nodeWallet: new PublicKey(params.nodeWallet),
+      nodeWallet: nodeWalletPubKey,
       operator: params.poolOwner,
       systemProgram: SystemProgram.programId,
     })
