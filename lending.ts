@@ -282,21 +282,39 @@ export async function createOffer(
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
+    // the collateral mint
     mint: string;
+    // the quote mint
+    quoteMint: string;
     interestRate: number;
     maxExposure: number;
   }
 ): Promise<VersionedTransaction> {
-  const nodeWallets = await lavarageProgram.account.nodeWallet.all();
+  
+  let nodeWalletAccount, nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
 
-  const nodeWalletAccount = nodeWallets.find((wallet) =>
-    wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner))
-  );
+  if (params.mint === "So11111111111111111111111111111111111111112") {
+    const nodeWallets = await lavarageProgram.account.nodeWallet.all();
+    nodeWalletAccount = nodeWallets.find((wallet) =>
+      wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner)),
+    );
+  } else {
+    const nodeWalletPda = getNodeWalletPDA(
+      new PublicKey(params.poolOwner),
+      new PublicKey(params.quoteMint),
+      lavarageProgram.programId
+    );
+    const nodeWalletAccountInfo = await lavarageProgram.provider.connection.getAccountInfo(nodeWalletPda);
+    if (nodeWalletAccountInfo) {
+      nodeWalletAccount = {
+        publicKey: nodeWalletPda,
+      };
+    }
+  }
 
-  let nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
   if (!nodeWalletAccount) {
     // Determine if this is V2 based on mint (SOL = V1, others = V2)
-    const isSOL = params.mint === "So11111111111111111111111111111111111111112";
+    const isSOL = params.quoteMint === "So11111111111111111111111111111111111111112";
 
     const {
       instruction,
@@ -304,7 +322,7 @@ export async function createOffer(
       nodeWalletAccount: nodeWalletPublicKey,
     } = await createNodeWallet(lavarageProgram, {
       operator: new PublicKey(params.poolOwner.toBase58()),
-      mint: isSOL ? undefined : params.mint, // Only pass mint for V2 (non-SOL)
+      mint: isSOL ? undefined : params.quoteMint, // Only pass mint for V2 (non-SOL)
       liquidationLtv: isSOL ? undefined : 90, // Only pass liquidationLtv for V2 (non-SOL)
     });
     nodeWalletSigner = nodeWallet;
