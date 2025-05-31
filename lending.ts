@@ -69,8 +69,8 @@ async function createNodeWallet(
 
   let instruction, nodeWallet;
 
-  // Check if this is V2 program (has mint parameter)
-  if (params.mint !== undefined) {
+  // Check if this is V2 program (has mint and liquidationLtv parameters)
+  if (params.mint !== undefined && params.liquidationLtv !== undefined) {
     nodeWallet = getNodeWalletPDA(
       new PublicKey(params.operator),
       new PublicKey(params.mint),
@@ -102,7 +102,8 @@ async function createNodeWallet(
   return {
     instruction,
     nodeWallet: nodeWallet instanceof Keypair ? nodeWallet : undefined,
-    nodeWalletAccount: nodeWallet instanceof Keypair ? nodeWallet.publicKey : nodeWallet,
+    nodeWalletAccount:
+      nodeWallet instanceof Keypair ? nodeWallet.publicKey : nodeWallet,
   };
 }
 
@@ -121,21 +122,38 @@ export async function depositFunds(
   let instruction;
   if (params.mint === undefined) {
     instruction = await lavarageProgram.methods
-    .lpOperatorFundNodeWallet(new BN(params.amount))
-    .accounts({
-      nodeWallet: params.nodeWallet,
-      funder: params.funder,
-      systemProgram: SystemProgram.programId,
-    })
-    .instruction();
+      .lpOperatorFundNodeWallet(new BN(params.amount))
+      .accounts({
+        nodeWallet: params.nodeWallet,
+        funder: params.funder,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
   } else {
     const mintPubkey = new PublicKey(params.mint);
-    const mintOwner = await lavarageProgram.provider.connection.getAccountInfo(mintPubkey);
-    const mintAccount = await getMint(lavarageProgram.provider.connection, mintPubkey, 'confirmed', mintOwner?.owner);
+    const mintOwner = await lavarageProgram.provider.connection.getAccountInfo(
+      mintPubkey
+    );
+    const mintAccount = await getMint(
+      lavarageProgram.provider.connection,
+      mintPubkey,
+      "confirmed",
+      mintOwner?.owner
+    );
     instruction = createTransferCheckedInstruction(
-      getAssociatedTokenAddressSync(mintPubkey, new PublicKey(params.funder), true, mintOwner?.owner),
+      getAssociatedTokenAddressSync(
+        mintPubkey,
+        new PublicKey(params.funder),
+        true,
+        mintOwner?.owner
+      ),
       new PublicKey(params.mint),
-      getAssociatedTokenAddressSync(mintPubkey, new PublicKey(params.nodeWallet), true, mintOwner?.owner),
+      getAssociatedTokenAddressSync(
+        mintPubkey,
+        new PublicKey(params.nodeWallet),
+        true,
+        mintOwner?.owner
+      ),
       lavarageProgram.provider.publicKey!,
       params.amount,
       mintAccount.decimals,
@@ -264,22 +282,48 @@ export async function createOffer(
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
-    mint?: string;
+    // the collateral mint
+    mint: string;
+    // the quote mint
+    quoteMint: string;
     interestRate: number;
     maxExposure: number;
   }
 ): Promise<VersionedTransaction> {
-  const nodeWallets = await lavarageProgram.account.nodeWallet.all();
+  
+  let nodeWalletAccount, nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
 
-  const nodeWalletAccount = nodeWallets.find(wallet => wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner)));
+  if (params.mint === "So11111111111111111111111111111111111111112") {
+    const nodeWallets = await lavarageProgram.account.nodeWallet.all();
+    nodeWalletAccount = nodeWallets.find((wallet) =>
+      wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner)),
+    );
+  } else {
+    const nodeWalletPda = getNodeWalletPDA(
+      new PublicKey(params.poolOwner),
+      new PublicKey(params.quoteMint),
+      lavarageProgram.programId
+    );
+    const nodeWalletAccountInfo = await lavarageProgram.provider.connection.getAccountInfo(nodeWalletPda);
+    if (nodeWalletAccountInfo) {
+      nodeWalletAccount = {
+        publicKey: nodeWalletPda,
+      };
+    }
+  }
 
-  let nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
   if (!nodeWalletAccount) {
-    // create node wallet
-    const { instruction, nodeWallet, nodeWalletAccount: nodeWalletPublicKey } = await createNodeWallet(lavarageProgram, {
+    // Determine if this is V2 based on mint (SOL = V1, others = V2)
+    const isSOL = params.quoteMint === "So11111111111111111111111111111111111111112";
+
+    const {
+      instruction,
+      nodeWallet,
+      nodeWalletAccount: nodeWalletPublicKey,
+    } = await createNodeWallet(lavarageProgram, {
       operator: new PublicKey(params.poolOwner.toBase58()),
-      mint: params.mint,
-      liquidationLtv: 90,
+      mint: isSOL ? undefined : params.quoteMint, // Only pass mint for V2 (non-SOL)
+      liquidationLtv: isSOL ? undefined : 90, // Only pass liquidationLtv for V2 (non-SOL)
     });
     nodeWalletSigner = nodeWallet;
     createNodeWalletInstruction = instruction;
@@ -291,17 +335,18 @@ export async function createOffer(
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
+  // Both V1 and V2 lpOperatorCreateTradingPool require mint parameter
   const instruction = await lavarageProgram.methods
     .lpOperatorCreateTradingPool(new BN(params.interestRate))
     .accounts({
       tradingPool: params.tradingPool,
       operator: params.poolOwner,
       nodeWallet: nodeWalletPubKey,
-      mint: params.mint ? new PublicKey(params.mint) : undefined,
+      mint: new PublicKey(params.mint), // Always required for both V1 and V2
       systemProgram: SystemProgram.programId,
     })
     .instruction();
-  
+
   const updateMaxExposureInstruction = await lavarageProgram.methods
     .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
     .accounts({
@@ -315,7 +360,14 @@ export async function createOffer(
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [createNodeWalletInstruction === undefined ? null : createNodeWalletInstruction, instruction, updateMaxExposureInstruction, computeFeeIx].filter(Boolean) as TransactionInstruction[],
+    instructions: [
+      createNodeWalletInstruction === undefined
+        ? null
+        : createNodeWalletInstruction,
+      instruction,
+      updateMaxExposureInstruction,
+      computeFeeIx,
+    ].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
 
   if (nodeWalletSigner) {
