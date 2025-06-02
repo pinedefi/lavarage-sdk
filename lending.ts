@@ -293,7 +293,7 @@ export async function createOffer(
   
   let nodeWalletAccount, nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
 
-  if (params.mint === "So11111111111111111111111111111111111111112") {
+  if (params.quoteMint === "So11111111111111111111111111111111111111112") {
     const nodeWallets = await lavarageProgram.account.nodeWallet.all();
     nodeWalletAccount = nodeWallets.find((wallet) =>
       wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner)),
@@ -312,7 +312,7 @@ export async function createOffer(
     }
   }
 
-  if (!nodeWalletAccount) {
+  if (!nodeWalletAccount?.account) {
     // Determine if this is V2 based on mint (SOL = V1, others = V2)
     const isSOL = params.quoteMint === "So11111111111111111111111111111111111111112";
 
