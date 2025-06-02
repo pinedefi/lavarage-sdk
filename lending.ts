@@ -372,10 +372,7 @@ export async function createOffer(
 
   if (nodeWalletSigner) {
     const transaction = new VersionedTransaction(messageV0);
-    transaction.addSignature(
-      nodeWalletSigner.publicKey,
-      nodeWalletSigner.secretKey
-    );
+    transaction.sign([nodeWalletSigner]);
     return transaction;
   }
 
