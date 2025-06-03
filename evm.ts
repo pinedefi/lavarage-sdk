@@ -198,7 +198,7 @@ export async function getClosedPositionsEvm(
 
   return Promise.all(
     allEvents.map(async (event: any) => {
-      const { buyer, tokenCollateral, loanId, closingPositionSize, profit } =
+      const { buyer, tokenHolder, tokenCollateral, loanId, closingPositionSize, profit } =
         event.args as unknown as any;
 
       const block = await provider.getBlock(event.blockNumber);
@@ -206,7 +206,7 @@ export async function getClosedPositionsEvm(
 
       return {
         trader: buyer,
-        tokenCollateral,
+        tokenCollateral: tokenHolder,
         loanId,
         closingPositionSize,
         profit,

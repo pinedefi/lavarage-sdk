@@ -1443,7 +1443,8 @@ export const splitPositionV2 = async (
     collateralType: PublicKey;
   }>,
   quoteToken: PublicKey,
-  propotionBps: number
+  propotionBps: number,
+  computeBudgetMicroLamports?: number
 ) => {
   const positionAccountPDA = position.publicKey;
 
@@ -1523,7 +1524,7 @@ export const splitPositionV2 = async (
     .instruction();
 
   const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
-    microLamports: 100000,
+    microLamports: computeBudgetMicroLamports ?? 100000,
   });
 
   const allInstructions = [
@@ -1566,7 +1567,8 @@ export const mergePositionV2 = async (
     interestRate: number;
     collateralType: PublicKey;
   }>,
-  quoteToken: PublicKey
+  quoteToken: PublicKey,
+  computeBudgetMicroLamports?: number
 ) => {
   const positionAccountPDA1 = position1.publicKey;
   const positionAccountPDA2 = position2.publicKey;
@@ -1627,7 +1629,7 @@ export const mergePositionV2 = async (
     .instruction();
 
   const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
-    microLamports: 100000,
+    microLamports: computeBudgetMicroLamports ?? 100000,
   });
 
   const allInstructions = [

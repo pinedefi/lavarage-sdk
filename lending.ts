@@ -48,10 +48,6 @@ export function getTradingPoolPDA(
   );
 }
 
-const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
-  microLamports: 150000,
-});
-
 async function createNodeWallet(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
@@ -114,6 +110,7 @@ export async function depositFunds(
     mint?: string; // Required for V2, optional for V1
     funder: PublicKey;
     amount: number;
+    computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
   const { blockhash } =
@@ -121,6 +118,9 @@ export async function depositFunds(
 
   let instruction;
   if (params.mint === undefined) {
+    const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: params.computeBudgetMicroLamports ?? 150000,
+    });
     instruction = await lavarageProgram.methods
       .lpOperatorFundNodeWallet(new BN(params.amount))
       .accounts({
@@ -140,6 +140,9 @@ export async function depositFunds(
       "confirmed",
       mintOwner?.owner
     );
+    const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: params.computeBudgetMicroLamports ?? 150000,
+    });
     instruction = createTransferCheckedInstruction(
       getAssociatedTokenAddressSync(
         mintPubkey,
@@ -162,6 +165,10 @@ export async function depositFunds(
     );
   }
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
@@ -177,6 +184,7 @@ export async function withdrawFundsV1(
     nodeWallet: PublicKey;
     funder: PublicKey;
     amount: number;
+    computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
   const { blockhash } =
@@ -190,6 +198,10 @@ export async function withdrawFundsV1(
       systemProgram: SystemProgram.programId,
     })
     .instruction();
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
 
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
@@ -209,6 +221,7 @@ export async function withdrawFundsV2(
     amount: number;
     fromTokenAccount?: PublicKey; // Optional, will be derived if not provided
     toTokenAccount?: PublicKey; // Optional, will be derived if not provided
+    computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
   const { blockhash } =
@@ -237,6 +250,10 @@ export async function withdrawFundsV2(
     })
     .instruction();
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
@@ -256,6 +273,7 @@ export async function withdrawFunds(
     mint?: string; // Required for V2, optional for V1
     fromTokenAccount?: PublicKey; // Only used for V2
     toTokenAccount?: PublicKey; // Only used for V2
+    computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
   // Check if mint is provided to determine if this is V2
@@ -267,12 +285,14 @@ export async function withdrawFunds(
       amount: params.amount,
       fromTokenAccount: params.fromTokenAccount,
       toTokenAccount: params.toTokenAccount,
+      computeBudgetMicroLamports: params.computeBudgetMicroLamports,
     });
   } else {
     return withdrawFundsV1(lavarageProgram as Program<Lavarage>, {
       nodeWallet: params.nodeWallet,
       funder: params.funder,
       amount: params.amount,
+      computeBudgetMicroLamports: params.computeBudgetMicroLamports,
     });
   }
 }
@@ -288,6 +308,7 @@ export async function createOffer(
     quoteMint: string;
     interestRate: number;
     maxExposure: number;
+    computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
   
@@ -357,6 +378,10 @@ export async function createOffer(
     })
     .instruction();
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
@@ -386,6 +411,7 @@ export async function updateMaxExposure(
     nodeWallet: string;
     poolOwner: PublicKey;
     maxExposure: number;
+    computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
   const { blockhash } =
@@ -401,10 +427,14 @@ export async function updateMaxExposure(
     })
     .instruction();
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [instruction],
+    instructions: [instruction, computeFeeIx],
   }).compileToV0Message();
 
   return new VersionedTransaction(messageV0);
@@ -417,6 +447,7 @@ export async function updateInterestRate(
     nodeWallet: string;
     poolOwner: PublicKey;
     interestRate: number;
+    computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
   const { blockhash } =
@@ -432,10 +463,14 @@ export async function updateInterestRate(
     })
     .instruction();
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [instruction],
+    instructions: [instruction, computeFeeIx],
   }).compileToV0Message();
 
   return new VersionedTransaction(messageV0);
@@ -450,6 +485,7 @@ export async function updateOffer(
     mint: string;
     interestRate: number;
     maxExposure: number;
+    computeBudgetMicroLamports?: number;
     //includeCreatePool?: boolean; // Optional flag to include pool creation
   }
 ): Promise<VersionedTransaction> {
@@ -496,9 +532,14 @@ export async function updateOffer(
     })
     .instruction();
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
   instructions.push(
     updateMaxExposureInstruction,
-    updateInterestRateInstruction
+    updateInterestRateInstruction,
+    computeFeeIx
   );
 
   const messageV0 = new TransactionMessage({
