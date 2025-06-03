@@ -144,7 +144,7 @@ export async function depositFunds(
       getAssociatedTokenAddressSync(
         mintPubkey,
         new PublicKey(params.funder),
-        true,
+        false,
         mintOwner?.owner
       ),
       new PublicKey(params.mint),
@@ -154,7 +154,7 @@ export async function depositFunds(
         true,
         mintOwner?.owner
       ),
-      lavarageProgram.provider.publicKey!,
+      params.funder,
       params.amount,
       mintAccount.decimals,
       [],
@@ -290,13 +290,15 @@ export async function createOffer(
     maxExposure: number;
   }
 ): Promise<VersionedTransaction> {
-  
-  let nodeWalletAccount, nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
+  let nodeWalletAccount,
+    nodeWalletSigner,
+    createNodeWalletInstruction,
+    nodeWalletPubKey;
 
   if (params.mint === "So11111111111111111111111111111111111111112") {
     const nodeWallets = await lavarageProgram.account.nodeWallet.all();
     nodeWalletAccount = nodeWallets.find((wallet) =>
-      wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner)),
+      wallet.account.nodeOperator.equals(new PublicKey(params.poolOwner))
     );
   } else {
     const nodeWalletPda = getNodeWalletPDA(
@@ -304,7 +306,8 @@ export async function createOffer(
       new PublicKey(params.quoteMint),
       lavarageProgram.programId
     );
-    const nodeWalletAccountInfo = await lavarageProgram.provider.connection.getAccountInfo(nodeWalletPda);
+    const nodeWalletAccountInfo =
+      await lavarageProgram.provider.connection.getAccountInfo(nodeWalletPda);
     if (nodeWalletAccountInfo) {
       nodeWalletAccount = {
         publicKey: nodeWalletPda,
@@ -314,7 +317,8 @@ export async function createOffer(
 
   if (!nodeWalletAccount) {
     // Determine if this is V2 based on mint (SOL = V1, others = V2)
-    const isSOL = params.quoteMint === "So11111111111111111111111111111111111111112";
+    const isSOL =
+      params.quoteMint === "So11111111111111111111111111111111111111112";
 
     const {
       instruction,
