@@ -567,3 +567,39 @@ export async function updateOffer(
 
   return new VersionedTransaction(messageV0);
 }
+
+export async function updateMaxBorrow(
+  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  params: {
+    tradingPool: PublicKey;
+    nodeWallet: string;
+    oracle: PublicKey;
+    maxBorrow: number;
+    computeBudgetMicroLamports?: number;
+  }
+): Promise<VersionedTransaction> {
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
+  const instruction = await lavarageProgram.methods
+    .lpOperatorUpdateMaxBorrow(new BN(params.maxBorrow))
+    .accounts({
+      tradingPool: params.tradingPool,
+      nodeWallet: new PublicKey(params.nodeWallet),
+      operator: params.oracle,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [instruction, computeFeeIx],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(messageV0);
+}
