@@ -1545,7 +1545,13 @@ export const splitPositionV2 = async (
 
   const tx = new VersionedTransaction(messageV0);
 
-  return tx;
+  return {
+    transaction: tx,
+    newPositionAddresses: [
+      newPosition1AccountPDA.toBase58(),
+      newPosition2AccountPDA.toBase58(),
+    ],
+  };
 };
 
 export const mergePositionV2 = async (
