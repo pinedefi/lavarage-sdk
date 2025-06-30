@@ -1,932 +1,1118 @@
 export type Lavarage = {
-  "version": "0.1.0"
-  "name": "lavarage"
+  "version": "0.1.0",
+  "name": "lavarage",
   "instructions": [
     {
-      "name": "lpOperatorCreateTradingPool"
+      "name": "lpOperatorCreateTradingPool",
       "accounts": [
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "operator"
-          "isMut": true
+          "name": "operator",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "nodeWallet"
-          "isMut": false
+          "name": "nodeWallet",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "mint"
-          "isMut": false
+          "name": "mint",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "interestRate"
+          "name": "interestRate",
           "type": "u8"
         }
       ]
     },
     {
-      "name": "lpOperatorCreateNodeWallet"
+      "name": "lpOperatorCreateNodeWallet",
       "accounts": [
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "operator"
-          "isMut": true
+          "name": "operator",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": []
     },
     {
-      "name": "lpOperatorFundNodeWallet"
+      "name": "lpOperatorFundNodeWallet",
       "accounts": [
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "funder"
-          "isMut": true
+          "name": "funder",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "amount"
+          "name": "amount",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "lpOperatorWithdrawFromNodeWallet"
+      "name": "lpOperatorWithdrawFromNodeWallet",
       "accounts": [
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "funder"
-          "isMut": true
+          "name": "funder",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "amount"
+          "name": "amount",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "lpOperatorUpdateMaxBorrow"
+      "name": "lpOperatorUpdateMaxBorrow",
       "accounts": [
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": false
+          "name": "nodeWallet",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "operator"
-          "isMut": true
+          "name": "operator",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "amount"
+          "name": "amount",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "lpOperatorUpdateMaxExposure"
+      "name": "lpOperatorUpdateMaxExposure",
       "accounts": [
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": false
+          "name": "nodeWallet",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "operator"
-          "isMut": true
+          "name": "operator",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "amount"
+          "name": "amount",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "lpOperatorUpdateInterestRate"
+      "name": "lpOperatorUpdateInterestRate",
       "accounts": [
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": false
+          "name": "nodeWallet",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "operator"
-          "isMut": true
+          "name": "operator",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "amount"
+          "name": "amount",
           "type": "u8"
         }
       ]
     },
     {
-      "name": "lpLiquidate"
+      "name": "lpLiquidate",
       "accounts": [
         {
-          "name": "mint"
-          "isMut": false
+          "name": "mint",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "fromTokenAccount"
-          "isMut": true
+          "name": "fromTokenAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "toTokenAccount"
-          "isMut": true
+          "name": "toTokenAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "tokenProgram"
-          "isMut": false
+          "name": "tokenProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "clock"
-          "isMut": false
+          "name": "clock",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "operator"
-          "isMut": false
+          "name": "operator",
+          "isMut": false,
           "isSigner": true
         },
         {
-          "name": "oracle"
-          "isMut": false
+          "name": "oracle",
+          "isMut": false,
           "isSigner": true
         }
-      ]
+      ],
       "args": [
         {
-          "name": "positionSize"
+          "name": "positionSize",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "lpCollectInterest"
+      "name": "lpCollectInterest",
       "accounts": [
         {
-          "name": "mint"
-          "isMut": false
+          "name": "mint",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "fromTokenAccount"
-          "isMut": true
+          "name": "fromTokenAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "toTokenAccount"
-          "isMut": true
+          "name": "toTokenAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "tokenProgram"
-          "isMut": false
+          "name": "tokenProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "clock"
-          "isMut": false
+          "name": "clock",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "operator"
-          "isMut": false
+          "name": "operator",
+          "isMut": false,
           "isSigner": true
         },
         {
-          "name": "oracle"
-          "isMut": false
+          "name": "oracle",
+          "isMut": false,
           "isSigner": true
         }
-      ]
+      ],
       "args": [
         {
-          "name": "price"
+          "name": "price",
           "type": "u128"
         }
       ]
     },
     {
-      "name": "tradingOpenBorrow"
+      "name": "tradingOpenBorrow",
       "accounts": [
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "instructions"
-          "isMut": false
+          "name": "instructions",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "clock"
-          "isMut": false
+          "name": "clock",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "feeReceipient"
-          "isMut": true
+          "name": "feeReceipient",
+          "isMut": true,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "positionSize"
+          "name": "positionSize",
           "type": "u64"
         },
         {
-          "name": "userPays"
+          "name": "userPays",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "tradingOpenAddCollateral"
+      "name": "tradingOpenAddCollateral",
       "accounts": [
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "mint"
-          "isMut": false
+          "name": "mint",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "toTokenAccount"
-          "isMut": false
+          "name": "toTokenAccount",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "maxInterestRate"
+          "name": "maxInterestRate",
           "type": "u8"
         }
       ]
     },
     {
-      "name": "tradingCloseBorrowCollateral"
+      "name": "tradingCloseBorrowCollateral",
       "accounts": [
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "instructions"
-          "isMut": false
+          "name": "instructions",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "mint"
-          "isMut": false
+          "name": "mint",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "fromTokenAccount"
-          "isMut": true
+          "name": "fromTokenAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "toTokenAccount"
-          "isMut": true
+          "name": "toTokenAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "tokenProgram"
-          "isMut": false
+          "name": "tokenProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "clock"
-          "isMut": false
+          "name": "clock",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": []
     },
     {
-      "name": "tradingDataAccruedInterest"
+      "name": "tradingDataAccruedInterest",
       "accounts": [
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "clock"
-          "isMut": false
+          "name": "clock",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "feeReceipient"
-          "isMut": true
+          "name": "feeReceipient",
+          "isMut": true,
           "isSigner": false
         }
-      ]
-      "args": []
+      ],
+      "args": [],
       "returns": "u64"
     },
     {
-      "name": "tradingCloseRepaySol"
+      "name": "tradingCloseRepaySol",
       "accounts": [
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "clock"
-          "isMut": false
+          "name": "clock",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "feeReceipient"
-          "isMut": true
+          "name": "feeReceipient",
+          "isMut": true,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "closingPositionSize"
+          "name": "closingPositionSize",
           "type": "u64"
         },
         {
-          "name": "closeType"
+          "name": "closeType",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "tradingClosePartialRepaySol"
+      "name": "tradingClosePartialRepaySol",
       "accounts": [
         {
-          "name": "positionAccount"
-          "isMut": true
+          "name": "positionAccount",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "trader"
-          "isMut": true
+          "name": "trader",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "tradingPool"
-          "isMut": true
+          "name": "tradingPool",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "clock"
-          "isMut": false
+          "name": "clock",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "randomAccountAsId"
-          "isMut": false
+          "name": "randomAccountAsId",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "feeReceipient"
-          "isMut": true
+          "name": "feeReceipient",
+          "isMut": true,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "repayPercentage"
+          "name": "repayPercentage",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "syncNodeWallet"
+      "name": "syncNodeWallet",
       "accounts": [
         {
-          "name": "nodeWallet"
-          "isMut": true
+          "name": "nodeWallet",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "funder"
-          "isMut": true
+          "name": "funder",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": []
     },
     {
-      "name": "tradingCreateTpDelegate"
+      "name": "tradingCreateTpDelegate",
       "accounts": [
         {
-          "name": "delegate"
-          "isMut": true
+          "name": "delegate",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "originalOperator"
-          "isMut": true
+          "name": "originalOperator",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "delegatedAccount"
-          "isMut": false
+          "name": "delegatedAccount",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": [
         {
-          "name": "price"
+          "name": "price",
           "type": "u64"
         },
         {
-          "name": "lowerThreshold"
+          "name": "lowerThreshold",
           "type": "u64"
         },
         {
-          "name": "delegateOperator"
+          "name": "delegateOperator",
           "type": "publicKey"
         },
         {
-          "name": "partialPercentage"
+          "name": "partialPercentage",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "tradingRemoveTpDelegate"
+      "name": "tradingRemoveTpDelegate",
       "accounts": [
         {
-          "name": "delegate"
-          "isMut": true
+          "name": "delegate",
+          "isMut": true,
           "isSigner": false
         },
         {
-          "name": "originalOperator"
-          "isMut": true
+          "name": "originalOperator",
+          "isMut": true,
           "isSigner": true
         },
         {
-          "name": "delegatedAccount"
-          "isMut": false
+          "name": "delegatedAccount",
+          "isMut": false,
           "isSigner": false
         },
         {
-          "name": "systemProgram"
-          "isMut": false
+          "name": "systemProgram",
+          "isMut": false,
           "isSigner": false
         }
-      ]
+      ],
       "args": []
+    },
+    {
+      "name": "delegateExecuteTp",
+      "accounts": [
+        {
+          "name": "delegate",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateOperator",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "account",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "positionTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "seed",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "delegateClosePosition",
+      "accounts": [
+        {
+          "name": "delegate",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateOperator",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "account",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWalletTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "profitTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "closingPositionSize",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "tradingManagementSplitPosition",
+      "accounts": [
+        {
+          "name": "originalPosition",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionOne",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionTwo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "originalPositionTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionTokenAccountOne",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionTokenAccountTwo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "trader",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "splitRatioBps",
+          "type": "u64"
+        },
+        {
+          "name": "seed1",
+          "type": "publicKey"
+        },
+        {
+          "name": "seed2",
+          "type": "publicKey"
+        }
+      ]
     }
-  ]
+  ],
   "accounts": [
     {
-      "name": "delegate"
+      "name": "delegate",
       "type": {
-        "kind": "struct"
+        "kind": "struct",
         "fields": [
           {
-            "name": "delegateType"
+            "name": "delegateType",
             "type": "u8"
           },
           {
-            "name": "field1"
+            "name": "field1",
             "type": "u64"
           },
           {
-            "name": "field2"
+            "name": "field2",
             "type": "u64"
           },
           {
-            "name": "field3"
+            "name": "field3",
             "type": "u64"
           },
           {
-            "name": "field4"
+            "name": "field4",
             "type": "publicKey"
           },
           {
-            "name": "field5"
+            "name": "field5",
             "type": "publicKey"
           },
           {
-            "name": "originalOperator"
+            "name": "originalOperator",
             "type": "publicKey"
           },
           {
-            "name": "delegateOperator"
+            "name": "delegateOperator",
             "type": "publicKey"
           },
           {
-            "name": "account"
+            "name": "account",
             "type": "publicKey"
           }
         ]
       }
     },
     {
-      "name": "nodeWallet"
+      "name": "nodeWallet",
       "type": {
-        "kind": "struct"
+        "kind": "struct",
         "fields": [
           {
-            "name": "totalFunds"
+            "name": "totalFunds",
             "type": "u64"
           },
           {
-            "name": "totalBorrowed"
+            "name": "totalBorrowed",
             "type": "u64"
           },
           {
-            "name": "maintenanceLtv"
+            "name": "maintenanceLtv",
             "type": "u8"
           },
           {
-            "name": "liquidationLtv"
+            "name": "liquidationLtv",
             "type": "u8"
           },
           {
-            "name": "nodeOperator"
+            "name": "nodeOperator",
             "type": "publicKey"
           }
         ]
       }
     },
     {
-      "name": "pool"
+      "name": "pool",
       "type": {
-        "kind": "struct"
+        "kind": "struct",
         "fields": [
           {
-            "name": "interestRate"
+            "name": "interestRate",
             "type": "u8"
           },
           {
-            "name": "collateralType"
+            "name": "collateralType",
             "type": "publicKey"
           },
           {
-            "name": "maxBorrow"
+            "name": "maxBorrow",
             "type": "u64"
           },
           {
-            "name": "nodeWallet"
+            "name": "nodeWallet",
             "type": "publicKey"
           },
           {
-            "name": "maxExposure"
+            "name": "maxExposure",
             "type": "u64"
           },
           {
-            "name": "currentExposure"
+            "name": "currentExposure",
             "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "position"
+      "name": "position",
       "type": {
-        "kind": "struct"
+        "kind": "struct",
         "fields": [
           {
-            "name": "pool"
+            "name": "pool",
             "type": "publicKey"
           },
           {
-            "name": "closeStatusRecallTimestamp"
+            "name": "closeStatusRecallTimestamp",
             "type": "u64"
           },
           {
-            "name": "amount"
+            "name": "amount",
             "type": "u64"
           },
           {
-            "name": "userPaid"
+            "name": "userPaid",
             "type": "u64"
           },
           {
-            "name": "collateralAmount"
+            "name": "collateralAmount",
             "type": "u64"
           },
           {
-            "name": "timestamp"
+            "name": "timestamp",
             "type": "i64"
           },
           {
-            "name": "trader"
+            "name": "trader",
             "type": "publicKey"
           },
           {
-            "name": "seed"
+            "name": "seed",
             "type": "publicKey"
           },
           {
-            "name": "closeTimestamp"
+            "name": "closeTimestamp",
             "type": "i64"
           },
           {
-            "name": "closingPositionSize"
+            "name": "closingPositionSize",
             "type": "u64"
           },
           {
-            "name": "interestRate"
+            "name": "interestRate",
             "type": "u8"
           },
           {
-            "name": "lastInterestCollect"
+            "name": "lastInterestCollect",
             "type": "i64"
           }
         ]
       }
     }
-  ]
+  ],
   "types": [
     {
-      "name": "LendingErrors"
+      "name": "LendingErrors",
       "docs": [
         "Errors for this program"
-      ]
+      ],
       "type": {
-        "kind": "enum"
+        "kind": "enum",
         "variants": [
           {
             "name": "AddressMismatch"
@@ -956,9 +1142,9 @@ export type Lavarage = {
       }
     },
     {
-      "name": "ErrorCode"
+      "name": "ErrorCode",
       "type": {
-        "kind": "enum"
+        "kind": "enum",
         "variants": [
           {
             "name": "InvalidSignature"
@@ -970,9 +1156,23 @@ export type Lavarage = {
       }
     },
     {
-      "name": "ErrorCode"
+      "name": "ErrorCode",
       "type": {
-        "kind": "enum"
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "InvalidSplitRatio"
+          },
+          {
+            "name": "PositionsNotMergeable"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ErrorCode",
+      "type": {
+        "kind": "enum",
         "variants": [
           {
             "name": "OnlyDelegateOperator"
@@ -987,9 +1187,9 @@ export type Lavarage = {
       }
     },
     {
-      "name": "PositionCloseType"
+      "name": "PositionCloseType",
       "type": {
-        "kind": "enum"
+        "kind": "enum",
         "variants": [
           {
             "name": "ClosedByUser"
@@ -1000,142 +1200,142 @@ export type Lavarage = {
         ]
       }
     }
-  ]
+  ],
   "events": [
     {
-      "name": "PositionCloseEvent"
+      "name": "PositionCloseEvent",
       "fields": [
         {
-          "name": "pool"
-          "type": "publicKey"
+          "name": "pool",
+          "type": "publicKey",
           "index": false
         },
         {
-          "name": "amount"
-          "type": "u64"
+          "name": "amount",
+          "type": "u64",
           "index": false
         },
         {
-          "name": "userPaid"
-          "type": "u64"
+          "name": "userPaid",
+          "type": "u64",
           "index": false
         },
         {
-          "name": "collateralAmount"
-          "type": "u64"
+          "name": "collateralAmount",
+          "type": "u64",
           "index": false
         },
         {
-          "name": "openTimestamp"
-          "type": "i64"
+          "name": "openTimestamp",
+          "type": "i64",
           "index": false
         },
         {
-          "name": "trader"
-          "type": "publicKey"
+          "name": "trader",
+          "type": "publicKey",
           "index": false
         },
         {
-          "name": "closeType"
-          "type": "u8"
+          "name": "closeType",
+          "type": "u8",
           "index": false
         },
         {
-          "name": "closeTimestamp"
-          "type": "i64"
+          "name": "closeTimestamp",
+          "type": "i64",
           "index": false
         },
         {
-          "name": "closingPositionSize"
-          "type": "u64"
+          "name": "closingPositionSize",
+          "type": "u64",
           "index": false
         }
       ]
     },
     {
-      "name": "PositionOpenEvent"
+      "name": "PositionOpenEvent",
       "fields": [
         {
-          "name": "pool"
-          "type": "publicKey"
+          "name": "pool",
+          "type": "publicKey",
           "index": false
         },
         {
-          "name": "amount"
-          "type": "u64"
+          "name": "amount",
+          "type": "u64",
           "index": false
         },
         {
-          "name": "userPaid"
-          "type": "u64"
+          "name": "userPaid",
+          "type": "u64",
           "index": false
         },
         {
-          "name": "collateralAmount"
-          "type": "u64"
+          "name": "collateralAmount",
+          "type": "u64",
           "index": false
         },
         {
-          "name": "openTimestamp"
-          "type": "i64"
+          "name": "openTimestamp",
+          "type": "i64",
           "index": false
         },
         {
-          "name": "trader"
-          "type": "publicKey"
+          "name": "trader",
+          "type": "publicKey",
           "index": false
         }
       ]
     }
-  ]
+  ],
   "errors": [
     {
-      "code": 6000
-      "name": "AddressMismatch"
+      "code": 6000,
+      "name": "AddressMismatch",
       "msg": "Address Mismatch"
     },
     {
-      "code": 6001
-      "name": "ProgramMismatch"
+      "code": 6001,
+      "name": "ProgramMismatch",
       "msg": "Program Mismatch"
     },
     {
-      "code": 6002
-      "name": "MissingRepay"
+      "code": 6002,
+      "name": "MissingRepay",
       "msg": "Missing Repay"
     },
     {
-      "code": 6003
-      "name": "IncorrectOwner"
+      "code": 6003,
+      "name": "IncorrectOwner",
       "msg": "Incorrect Owner"
     },
     {
-      "code": 6004
-      "name": "IncorrectProgramAuthority"
+      "code": 6004,
+      "name": "IncorrectProgramAuthority",
       "msg": "Incorrect Program Authority"
     },
     {
-      "code": 6005
-      "name": "CannotBorrowBeforeRepay"
+      "code": 6005,
+      "name": "CannotBorrowBeforeRepay",
       "msg": "Cannot Borrow Before Repay"
     },
     {
-      "code": 6006
-      "name": "UnknownInstruction"
+      "code": 6006,
+      "name": "UnknownInstruction",
       "msg": "Unknown Instruction"
     },
     {
-      "code": 6007
-      "name": "ExpectedCollateralNotEnough"
+      "code": 6007,
+      "name": "ExpectedCollateralNotEnough",
       "msg": "Expected collateral not enough"
     },
     {
-      "code": 6008
-      "name": "ForTesting"
+      "code": 6008,
+      "name": "ForTesting",
       "msg": "TestError"
     }
   ]
-}
+};
 
 export const IDL: Lavarage = {
   "version": "0.1.0",
@@ -1894,6 +2094,192 @@ export const IDL: Lavarage = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "delegateExecuteTp",
+      "accounts": [
+        {
+          "name": "delegate",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateOperator",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "account",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "positionTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "seed",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "delegateClosePosition",
+      "accounts": [
+        {
+          "name": "delegate",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateOperator",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "account",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWalletTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "delegateTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "profitTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "closingPositionSize",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "tradingManagementSplitPosition",
+      "accounts": [
+        {
+          "name": "originalPosition",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionOne",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionTwo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "originalPositionTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionTokenAccountOne",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPositionTokenAccountTwo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "trader",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "splitRatioBps",
+          "type": "u64"
+        },
+        {
+          "name": "seed1",
+          "type": "publicKey"
+        },
+        {
+          "name": "seed2",
+          "type": "publicKey"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -2114,6 +2500,20 @@ export const IDL: Lavarage = {
         "kind": "enum",
         "variants": [
           {
+            "name": "InvalidSplitRatio"
+          },
+          {
+            "name": "PositionsNotMergeable"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ErrorCode",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
             "name": "OnlyDelegateOperator"
           },
           {
@@ -2274,4 +2674,4 @@ export const IDL: Lavarage = {
       "msg": "TestError"
     }
   ]
-}
+};

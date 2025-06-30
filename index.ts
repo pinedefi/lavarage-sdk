@@ -195,7 +195,8 @@ export const openTradeV1 = async (
   randomSeed: Keypair,
   tokenProgram: PublicKey,
   partnerFeeRecipient?: PublicKey,
-  partnerFeeMarkup?: number
+  partnerFeeMarkup?: number,
+  computeBudgetMicroLamports?: number
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -345,13 +346,18 @@ export const openTradeV1 = async (
     deserializeInstruction(swapInstructionPayload),
   ];
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: computeBudgetMicroLamports ?? 100000,
+  });
+
   const allInstructions = [
     fromTokenAccount.instruction!,
     toTokenAccount.instruction!,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
     openAddCollateralInstruction!,
-  ].filter(Boolean);
+    computeBudgetMicroLamports ? computeFeeIx : undefined,
+  ].filter(Boolean) as TransactionInstruction[];
 
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
@@ -384,7 +390,8 @@ export const openTradeV2 = async (
   quoteToken: PublicKey,
   tokenProgram: PublicKey,
   partnerFeeRecipient?: PublicKey,
-  partnerFeeMarkup?: number
+  partnerFeeMarkup?: number,
+  computeBudgetMicroLamports?: number
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -562,13 +569,18 @@ export const openTradeV2 = async (
     deserializeInstruction(swapInstructionPayload),
   ];
 
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: computeBudgetMicroLamports ?? 100000,
+  });
+
   const allInstructions = [
     fromTokenAccount.instruction!,
     toTokenAccount.instruction!,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
     openAddCollateralInstruction!,
-  ].filter(Boolean);
+    computeBudgetMicroLamports ? computeFeeIx : undefined,
+  ].filter(Boolean) as TransactionInstruction[];
 
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
@@ -872,7 +884,8 @@ export const closeTradeV1 = async (
     quoteResponse: any;
   },
   partnerFeeRecipient?: PublicKey,
-  partnerFeeMarkup?: number
+  partnerFeeMarkup?: number,
+  computeBudgetMicroLamports?: number
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -1039,6 +1052,8 @@ export const closeTradeV1 = async (
           : []
       )
       .instruction();
+
+      
     const {
       setupInstructions,
       swapInstruction: swapInstructionPayload,
@@ -1069,6 +1084,11 @@ export const closeTradeV1 = async (
       offer.account.collateralType,
       tokenProgram!
     );
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: computeBudgetMicroLamports ?? 100000,
+  });
+
   const allInstructions = [
     jupInstruction.instructions?.tokenLedgerInstruction
       ? createAssociatedTokenAccountInstruction
@@ -1082,6 +1102,7 @@ export const closeTradeV1 = async (
     closePositionIx,
     ...jupiterIxs,
     repaySolIx,
+    computeBudgetMicroLamports ? computeFeeIx : undefined,
   ].filter((i) => !!i);
 
   const messageV0 = new TransactionMessage({
@@ -1120,7 +1141,8 @@ export const closeTradeV2 = async (
   },
   quoteToken: PublicKey,
   partnerFeeRecipient?: PublicKey,
-  partnerFeeMarkup?: number
+  partnerFeeMarkup?: number,
+  computeBudgetMicroLamports?: number
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -1367,6 +1389,11 @@ export const closeTradeV2 = async (
       offer.account.collateralType,
       tokenProgram!
     );
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: computeBudgetMicroLamports ?? 100000,
+  });
+
   const allInstructions = [
     jupInstruction.instructions?.tokenLedgerInstruction
       ? createAssociatedTokenAccountInstruction
@@ -1380,6 +1407,7 @@ export const closeTradeV2 = async (
     closePositionIx,
     ...jupiterIxs,
     repaySolIx,
+    computeBudgetMicroLamports ? computeFeeIx : undefined,
   ].filter((i) => !!i);
 
   const messageV0 = new TransactionMessage({
@@ -1430,7 +1458,7 @@ const getQuoteCurrencySpecificAddressLookupTable = (quoteCurrency: string) => {
 };
 
 export const splitPositionV2 = async (
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageV2> | Program<Lavarage>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;

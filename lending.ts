@@ -583,7 +583,7 @@ export async function updateMaxBorrow(
 
   const instruction = await lavarageProgram.methods
     .lpOperatorUpdateMaxBorrow(new BN(params.maxBorrow))
-    .accounts({
+    .accountsStrict({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
       operator: params.oracle,
