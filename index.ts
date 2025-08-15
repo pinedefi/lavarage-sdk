@@ -1053,7 +1053,6 @@ export const closeTradeV1 = async (
       )
       .instruction();
 
-      
     const {
       setupInstructions,
       swapInstruction: swapInstructionPayload,
@@ -1578,6 +1577,10 @@ export const splitPositionV2 = async (
     newPositionAddresses: [
       newPosition1AccountPDA.toBase58(),
       newPosition2AccountPDA.toBase58(),
+    ],
+    newPositionSeeds: [
+      newPosition1Seed.toBase58(),
+      newPosition2Seed.toBase58(),
     ],
   };
 };
