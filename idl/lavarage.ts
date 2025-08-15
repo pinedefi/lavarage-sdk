@@ -44,7 +44,7 @@ export type Lavarage = {
         {
           "name": "nodeWallet",
           "isMut": true,
-          "isSigner": true
+          "isSigner": false
         },
         {
           "name": "operator",
@@ -100,6 +100,11 @@ export type Lavarage = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawalAccessList",
           "isMut": false,
           "isSigner": false
         }
@@ -234,7 +239,7 @@ export type Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -305,7 +310,7 @@ export type Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -798,6 +803,11 @@ export type Lavarage = {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -862,6 +872,11 @@ export type Lavarage = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "qtMint",
           "isMut": false,
           "isSigner": false
         }
@@ -939,6 +954,74 @@ export type Lavarage = {
         {
           "name": "seed2",
           "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "initWithdrawalAccessList",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "addWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "toPubkey",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "removeWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fromPubkey",
+          "type": "string"
         }
       ]
     }
@@ -1103,9 +1186,45 @@ export type Lavarage = {
           }
         ]
       }
+    },
+    {
+      "name": "withdrawalAccessList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "accessEntries",
+            "type": {
+              "vec": {
+                "defined": "WithdrawalAccessEntry"
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "types": [
+    {
+      "name": "WithdrawalAccessEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fromPubkey",
+            "type": "string"
+          },
+          {
+            "name": "toPubkey",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
     {
       "name": "LendingErrors",
       "docs": [
@@ -1137,6 +1256,18 @@ export type Lavarage = {
           },
           {
             "name": "ExpectedCollateralNotEnough"
+          },
+          {
+            "name": "AccessEntryAlreadyExists"
+          },
+          {
+            "name": "AccessEntryNotFound"
+          },
+          {
+            "name": "UnauthorizedWithdrawal"
+          },
+          {
+            "name": "AccountAlreadyInitialized"
           }
         ]
       }
@@ -1333,6 +1464,11 @@ export type Lavarage = {
       "code": 6008,
       "name": "ForTesting",
       "msg": "TestError"
+    },
+    {
+      "code": 6009,
+      "name": "BlacklistedAccount",
+      "msg": "Account is blacklisted"
     }
   ]
 };
@@ -1383,7 +1519,7 @@ export const IDL: Lavarage = {
         {
           "name": "nodeWallet",
           "isMut": true,
-          "isSigner": true
+          "isSigner": false
         },
         {
           "name": "operator",
@@ -1439,6 +1575,11 @@ export const IDL: Lavarage = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "withdrawalAccessList",
           "isMut": false,
           "isSigner": false
         }
@@ -1573,7 +1714,7 @@ export const IDL: Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -1644,7 +1785,7 @@ export const IDL: Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -2137,6 +2278,11 @@ export const IDL: Lavarage = {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -2201,6 +2347,11 @@ export const IDL: Lavarage = {
         },
         {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "qtMint",
           "isMut": false,
           "isSigner": false
         }
@@ -2278,6 +2429,74 @@ export const IDL: Lavarage = {
         {
           "name": "seed2",
           "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "initWithdrawalAccessList",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "addWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "toPubkey",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "removeWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fromPubkey",
+          "type": "string"
         }
       ]
     }
@@ -2442,9 +2661,45 @@ export const IDL: Lavarage = {
           }
         ]
       }
+    },
+    {
+      "name": "withdrawalAccessList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "accessEntries",
+            "type": {
+              "vec": {
+                "defined": "WithdrawalAccessEntry"
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "types": [
+    {
+      "name": "WithdrawalAccessEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fromPubkey",
+            "type": "string"
+          },
+          {
+            "name": "toPubkey",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
     {
       "name": "LendingErrors",
       "docs": [
@@ -2476,6 +2731,18 @@ export const IDL: Lavarage = {
           },
           {
             "name": "ExpectedCollateralNotEnough"
+          },
+          {
+            "name": "AccessEntryAlreadyExists"
+          },
+          {
+            "name": "AccessEntryNotFound"
+          },
+          {
+            "name": "UnauthorizedWithdrawal"
+          },
+          {
+            "name": "AccountAlreadyInitialized"
           }
         ]
       }
@@ -2672,6 +2939,11 @@ export const IDL: Lavarage = {
       "code": 6008,
       "name": "ForTesting",
       "msg": "TestError"
+    },
+    {
+      "code": 6009,
+      "name": "BlacklistedAccount",
+      "msg": "Account is blacklisted"
     }
   ]
 };

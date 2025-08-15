@@ -92,6 +92,17 @@ export function getTradingPoolPDA(
   );
 }
 
+export function getWithdrawalAccessListPDA(
+  programId: PublicKey
+): PublicKey {
+  return getPda(
+    [
+      Buffer.from("withdrawal_access_list"),
+    ],
+    programId
+  );
+}
+
 async function createNodeWallet(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
@@ -100,14 +111,15 @@ async function createNodeWallet(
     liquidationLtv?: number; // Required for V2, optional for V1
   }
 ): Promise<{
-  instruction: TransactionInstruction;
+  instructions: TransactionInstruction[];
   nodeWallet: Keypair | undefined;
   nodeWalletAccount: PublicKey;
 }> {
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  let instruction, nodeWallet;
+  let instructions: TransactionInstruction[] = [];
+  let nodeWallet;
 
   // Check if this is V2 program (has mint and liquidationLtv parameters)
   if (params.mint !== undefined && params.liquidationLtv !== undefined) {
@@ -117,7 +129,7 @@ async function createNodeWallet(
       lavarageProgram.programId
     );
     // V2 version
-    instruction = await (lavarageProgram as Program<LavarageV2>).methods
+    instructions.push(await (lavarageProgram as Program<LavarageV2>).methods
       .lpOperatorCreateNodeWallet(new BN(params.liquidationLtv))
       .accounts({
         nodeWallet: nodeWallet,
@@ -125,22 +137,41 @@ async function createNodeWallet(
         systemProgram: SystemProgram.programId,
         mint: new PublicKey(params.mint),
       })
-      .instruction();
+      .instruction());
   } else {
-    nodeWallet = Keypair.generate();
+    const seed = params.operator.toBase58().slice(0, 32);
+
+    const auxAccountPubkey = await PublicKey.createWithSeed(
+      params.operator,
+      seed,
+      lavarageProgram.programId
+    );
+
+    nodeWallet = auxAccountPubkey;
+
+    instructions.push(SystemProgram.createAccountWithSeed({
+      fromPubkey: params.operator,
+      basePubkey: params.operator,
+      seed,
+      newAccountPubkey: auxAccountPubkey,
+      lamports: 1300000,
+      space: 58,
+      programId: lavarageProgram.programId,
+    }));// Some code
+    
     // V1 version
-    instruction = await (lavarageProgram as Program<Lavarage>).methods
+    instructions.push(await (lavarageProgram as Program<Lavarage>).methods
       .lpOperatorCreateNodeWallet()
       .accounts({
-        nodeWallet: nodeWallet.publicKey,
+        nodeWallet: auxAccountPubkey,
         operator: new PublicKey(params.operator),
         systemProgram: SystemProgram.programId,
       })
-      .instruction();
+      .instruction());
   }
 
   return {
-    instruction,
+    instructions ,
     nodeWallet: nodeWallet instanceof Keypair ? nodeWallet : undefined,
     nodeWalletAccount:
       nodeWallet instanceof Keypair ? nodeWallet.publicKey : nodeWallet,
@@ -307,12 +338,15 @@ export async function withdrawFundsV1(
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
+  const withdrawalAccessList = getWithdrawalAccessListPDA(lavarageProgram.programId);
+
   const instruction = await lavarageProgram.methods
     .lpOperatorWithdrawFromNodeWallet(new BN(params.amount))
-    .accounts({
+    .accountsStrict({
       nodeWallet: params.nodeWallet,
       funder: params.funder,
       systemProgram: SystemProgram.programId,
+      withdrawalAccessList: withdrawalAccessList,
     })
     .instruction();
 
@@ -386,10 +420,11 @@ export async function withdrawFundsV2(
   const toTokenAccount =
     params.toTokenAccount ||
     getAssociatedTokenAddressSync(mintPubkey, params.funder);
+  const withdrawalAccessList = getWithdrawalAccessListPDA(lavarageProgram.programId);
 
   const instruction = await lavarageProgram.methods
     .lpOperatorWithdrawFromNodeWallet(new BN(params.amount))
-    .accounts({
+    .accountsStrict({
       nodeWallet: params.nodeWallet,
       funder: params.funder,
       systemProgram: SystemProgram.programId,
@@ -397,6 +432,7 @@ export async function withdrawFundsV2(
       fromTokenAccount,
       toTokenAccount,
       tokenProgram: TOKEN_PROGRAM_ID,
+      withdrawalAccessList: withdrawalAccessList,
     })
     .instruction();
 
@@ -529,10 +565,11 @@ export async function createOffer(
     interestRate: number;
     maxExposure: number;
     computeBudgetMicroLamports?: number;
+    maxBorrow?: number;
   }
 ): Promise<VersionedTransaction> {
   
-  let nodeWalletAccount, nodeWalletSigner, createNodeWalletInstruction, nodeWalletPubKey;
+  let nodeWalletAccount, nodeWalletSigner, createNodeWalletInstruction: TransactionInstruction[] =[], nodeWalletPubKey;
 
   if (params.quoteMint === "So11111111111111111111111111111111111111112") {
     const nodeWallets = await lavarageProgram.account.nodeWallet.all();
@@ -558,7 +595,7 @@ export async function createOffer(
     const isSOL = params.quoteMint === "So11111111111111111111111111111111111111112";
 
     const {
-      instruction,
+      instructions,
       nodeWallet,
       nodeWalletAccount: nodeWalletPublicKey,
     } = await createNodeWallet(lavarageProgram, {
@@ -567,7 +604,7 @@ export async function createOffer(
       liquidationLtv: isSOL ? undefined : 90, // Only pass liquidationLtv for V2 (non-SOL)
     });
     nodeWalletSigner = nodeWallet;
-    createNodeWalletInstruction = instruction;
+    createNodeWalletInstruction = instructions;
     nodeWalletPubKey = nodeWalletPublicKey;
   } else {
     nodeWalletPubKey = nodeWalletAccount.publicKey;
@@ -608,25 +645,28 @@ export async function createOffer(
     lamports: 0.3 * LAMPORTS_PER_SOL
   });
 
+  const updateMaxBorrowInstruction = await lavarageProgram.methods
+    .lpOperatorUpdateMaxBorrow(new BN(params.maxBorrow ?? 0))
+    .accountsStrict({
+      tradingPool: params.tradingPool,
+      nodeWallet: nodeWalletPubKey,
+      operator: params.poolOwner,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
   const messageV0 = new TransactionMessage({
     payerKey: lavarageProgram.provider.publicKey!,
     recentBlockhash: blockhash,
     instructions: [
-      createNodeWalletInstruction === undefined
-        ? null
-        : createNodeWalletInstruction,
+      ...createNodeWalletInstruction,
       instruction,
       updateMaxExposureInstruction,
       transferInstruction,
+      params.maxBorrow ? updateMaxBorrowInstruction : undefined,
       computeFeeIx,
     ].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
-
-  if (nodeWalletSigner) {
-    const transaction = new VersionedTransaction(messageV0);
-    transaction.sign([nodeWalletSigner]);
-    return transaction;
-  }
 
   return new VersionedTransaction(messageV0);
 }
@@ -931,4 +971,86 @@ export async function updateMaxBorrow(
   }).compileToV0Message();
 
   return new VersionedTransaction(messageV0);
+}
+
+export async function addToWithdrawalAccessList(
+  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  params: {
+    nodeWallet: PublicKey;
+    authority: PublicKey;
+    toPubkey: PublicKey;
+    computeBudgetMicroLamports?: number;
+  }
+): Promise<VersionedTransaction> {
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
+  const withdrawalAccessList = getWithdrawalAccessListPDA(lavarageProgram.programId);
+  const instruction = await lavarageProgram.methods
+    .addWithdrawalAccess(params.toPubkey)
+    .accounts({
+      withdrawalAccessList: withdrawalAccessList,
+      nodeWallet: params.nodeWallet,
+      authority: params.authority,
+    })
+    .instruction();
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [instruction, computeFeeIx],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(messageV0);
+}
+
+
+export async function removeFromWithdrawalAccessList(
+  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  params: {
+    authority: PublicKey;
+    nodeWallet: string; // This is a string in the IDL
+    computeBudgetMicroLamports?: number;
+  }
+): Promise<VersionedTransaction> {
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
+  const withdrawalAccessList = getWithdrawalAccessListPDA(lavarageProgram.programId);
+
+  const instruction = await lavarageProgram.methods
+    .removeWithdrawalAccess(params.nodeWallet)
+    .accounts({
+      withdrawalAccessList: withdrawalAccessList,
+      authority: params.authority,
+    })
+    .instruction();
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: params.computeBudgetMicroLamports ?? 150000,
+  });
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: [instruction, computeFeeIx],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(messageV0);
+}
+
+
+export async function getWithdrawalAccessList(
+  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  params: {
+    nodeWallet: string;
+  }
+): Promise<PublicKey | undefined> {
+  const withdrawalAccessList = getWithdrawalAccessListPDA(lavarageProgram.programId);
+  const withdrawalAccessListAccount = await lavarageProgram.account.withdrawalAccessList.fetch(withdrawalAccessList);
+  return withdrawalAccessListAccount.accessEntries.find((entry) => entry.fromPubkey.toString() === params.nodeWallet)?.toPubkey;
 }

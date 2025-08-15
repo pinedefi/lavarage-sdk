@@ -455,7 +455,8 @@ export const openTradeV1 = async (
   tokenProgram: PublicKey,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
-  computeBudgetMicroLamports?: number
+  computeBudgetMicroLamports?: number,
+  platformFeeRecipient?: PublicKey,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -486,6 +487,13 @@ export const openTradeV1 = async (
     tokenProgram
   );
 
+  const platformFeeRecipientAccount = platformFeeRecipient ? await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    platformFeeRecipient,
+    offer.account.collateralType,
+    tokenProgram
+  ) : undefined;
+
   const tokenAccountCreationTx = new Transaction();
 
   if (fromTokenAccount.instruction) {
@@ -494,6 +502,10 @@ export const openTradeV1 = async (
 
   if (toTokenAccount.instruction) {
     tokenAccountCreationTx.add(toTokenAccount.instruction);
+  }
+
+  if (platformFeeRecipientAccount?.instruction) {
+    tokenAccountCreationTx.add(platformFeeRecipientAccount.instruction);
   }
 
   const instructionsJup = jupInstruction.instructions;
@@ -706,7 +718,8 @@ export const openTradeV2 = async (
   tokenProgram: PublicKey,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
-  computeBudgetMicroLamports?: number
+  computeBudgetMicroLamports?: number,
+  platformFeeRecipient?: PublicKey,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -741,6 +754,13 @@ export const openTradeV2 = async (
     tokenProgram
   );
 
+  const platformFeeRecipientAccount = platformFeeRecipient ? await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    platformFeeRecipient,
+    offer.account.collateralType,
+    tokenProgram
+  ) : undefined;
+
   const tokenAccountCreationTx = new Transaction();
 
   if (fromTokenAccount.instruction) {
@@ -749,6 +769,10 @@ export const openTradeV2 = async (
 
   if (toTokenAccount.instruction) {
     tokenAccountCreationTx.add(toTokenAccount.instruction);
+  }
+
+  if (platformFeeRecipientAccount?.instruction) {
+    tokenAccountCreationTx.add(platformFeeRecipientAccount.instruction);
   }
 
   const instructionsJup = jupInstruction.instructions;
@@ -1389,7 +1413,8 @@ export const closeTradeV1 = async (
   },
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
-  computeBudgetMicroLamports?: number
+  computeBudgetMicroLamports?: number,
+  platformFeeRecipient?: PublicKey,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -1426,6 +1451,13 @@ export const closeTradeV1 = async (
     tokenAddressPubKey,
     tokenProgram
   );
+
+  const platformFeeRecipientAccount = platformFeeRecipient ? await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    platformFeeRecipient,
+    offer.account.collateralType,
+    tokenProgram
+  ) : undefined;
 
   const jupiterSellIx = jupInstruction!.instructions;
 
@@ -1593,6 +1625,7 @@ export const closeTradeV1 = async (
   });
 
   const allInstructions = [
+    jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
     jupInstruction.instructions?.tokenLedgerInstruction
       ? createAssociatedTokenAccountInstruction
       : null,
@@ -1681,7 +1714,8 @@ export const closeTradeV2 = async (
   quoteToken: PublicKey,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
-  computeBudgetMicroLamports?: number
+  computeBudgetMicroLamports?: number,
+  platformFeeRecipient?: PublicKey,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -1722,6 +1756,13 @@ export const closeTradeV2 = async (
     tokenAddressPubKey,
     tokenProgram
   );
+
+  const platformFeeRecipientAccount = platformFeeRecipient ? await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    platformFeeRecipient,
+    offer.account.collateralType,
+    tokenProgram
+  ) : undefined;
 
   const jupiterSellIx = jupInstruction!.instructions;
 
@@ -1934,6 +1975,7 @@ export const closeTradeV2 = async (
   });
 
   const allInstructions = [
+    jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
     jupInstruction.instructions?.tokenLedgerInstruction
       ? createAssociatedTokenAccountInstruction
       : null,

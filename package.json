@@ -1,6 +1,10 @@
 {
   "name": "@lavarage/sdk",
+<<<<<<< HEAD
   "version": "6.9.5",
+=======
+  "version": "7.1.2",
+>>>>>>> 67451cb (withdrawal access list)
   "description": "Lavarage SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

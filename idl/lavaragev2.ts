@@ -106,6 +106,11 @@ export type Lavarage = {
           "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "withdrawalAccessList",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -1080,6 +1085,74 @@ export type Lavarage = {
           "type": "publicKey"
         }
       ]
+    },
+    {
+      "name": "initWithdrawalAccessList",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "addWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "toPubkey",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "removeWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fromPubkey",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1250,9 +1323,45 @@ export type Lavarage = {
           }
         ]
       }
+    },
+    {
+      "name": "withdrawalAccessList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "accessEntries",
+            "type": {
+              "vec": {
+                "defined": "WithdrawalAccessEntry"
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "types": [
+    {
+      "name": "WithdrawalAccessEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fromPubkey",
+            "type": "string"
+          },
+          {
+            "name": "toPubkey",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
     {
       "name": "LendingErrors",
       "docs": [
@@ -1284,6 +1393,15 @@ export type Lavarage = {
           },
           {
             "name": "ExpectedCollateralNotEnough"
+          },
+          {
+            "name": "AccessEntryAlreadyExists"
+          },
+          {
+            "name": "AccessEntryNotFound"
+          },
+          {
+            "name": "UnauthorizedWithdrawal"
           }
         ]
       }
@@ -1592,6 +1710,11 @@ export const IDL: Lavarage = {
           "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "withdrawalAccessList",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -2566,6 +2689,74 @@ export const IDL: Lavarage = {
           "type": "publicKey"
         }
       ]
+    },
+    {
+      "name": "initWithdrawalAccessList",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "addWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "toPubkey",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "removeWithdrawalAccess",
+      "accounts": [
+        {
+          "name": "withdrawalAccessList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "fromPubkey",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -2736,9 +2927,45 @@ export const IDL: Lavarage = {
           }
         ]
       }
+    },
+    {
+      "name": "withdrawalAccessList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "publicKey"
+          },
+          {
+            "name": "accessEntries",
+            "type": {
+              "vec": {
+                "defined": "WithdrawalAccessEntry"
+              }
+            }
+          }
+        ]
+      }
     }
   ],
   "types": [
+    {
+      "name": "WithdrawalAccessEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fromPubkey",
+            "type": "string"
+          },
+          {
+            "name": "toPubkey",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
     {
       "name": "LendingErrors",
       "docs": [
@@ -2770,6 +2997,15 @@ export const IDL: Lavarage = {
           },
           {
             "name": "ExpectedCollateralNotEnough"
+          },
+          {
+            "name": "AccessEntryAlreadyExists"
+          },
+          {
+            "name": "AccessEntryNotFound"
+          },
+          {
+            "name": "UnauthorizedWithdrawal"
           }
         ]
       }
