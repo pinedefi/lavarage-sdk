@@ -11,19 +11,22 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsup"
+    "build": "tsup",
+    "docs": "typedoc",
+    "docs:build": "typedoc --out docs"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@coral-xyz/anchor": "0.29.0",
-    "bs58": "^6.0.0",
     "@solana/spl-token": "*",
     "@solana/web3.js": "1.98.0",
+    "bs58": "^6.0.0",
     "ethers": "^6.13.5"
   },
   "devDependencies": {
-    "tsup": "^8.2.4"
+    "tsup": "^8.2.4",
+    "typedoc": "^0.28.12"
   },
   "publishConfig": {
     "access": "public"
