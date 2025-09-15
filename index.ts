@@ -1,3 +1,17 @@
+/**
+ * @packageDocumentation
+ * @module Lavarage SDK
+ * 
+ * The main entry point for the Lavarage SDK, providing functionality for interacting
+ * with the Lavarage DeFi protocol on both Solana and EVM chains.
+ * 
+ * @example
+ * ```typescript
+ * import { getPda, getPositionAccountPDA } from '@lavarage/sdk';
+ * import * as lending from '@lavarage/sdk/lending';
+ * ```
+ */
+
 import { BN, Program, ProgramAccount } from "@coral-xyz/anchor";
 import { Lavarage } from "./idl/lavarage";
 import { Lavarage as LavarageV2 } from "./idl/lavaragev2";

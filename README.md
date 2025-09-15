@@ -6,7 +6,7 @@ TypeScript SDK for interacting with the Lavarage DeFi protocol on Solana and EVM
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- npm or pnpm
+- npm
 
 ### Installation
 ```bash
