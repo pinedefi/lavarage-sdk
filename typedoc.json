@@ -13,5 +13,16 @@
     },
     "categorizeByGroup": true,
     "defaultCategory": "Other",
-    "categoryOrder": [ "Main", "Lending", "Solana", "EVM", "*"]
+    "categoryOrder": [
+        "Core",        
+        "Offer",
+        "Position",
+        "Pool",
+        "Lender",
+        "Token",
+        "Solana",
+        "EVM",
+        "*"
+    ]
+
 }

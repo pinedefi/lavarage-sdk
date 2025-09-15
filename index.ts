@@ -43,12 +43,46 @@ import {
 
 export * from "./evm";
 export * as lending from "./lending";
+/**
+ * Derives a Program Derived Address (PDA) for the given seed(s) and program ID
+ * 
+ * @group Core
+ * 
+ * @param seed - Single buffer or array of buffers to use as seeds
+ * @param programId - The Solana program ID to derive the PDA from
+ * @returns The derived public key address
+ * 
+ * @example
+ * ```typescript
+ * const seed = Buffer.from("position");
+ * const pda = getPda(seed, programId);
+ * ```
+ */
 
 export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
   const seedsBuffer = Array.isArray(seed) ? seed : [seed];
 
   return PublicKey.findProgramAddressSync(seedsBuffer, programId)[0];
 }
+/**
+ * Generates a Position Account PDA for a specific offer and user
+ *
+ * @group Position
+ *
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param offer - The offer program account
+ * @param seed - Additional seed for uniqueness (typically a public key)
+ * @returns The Position Account PDA public key
+ * 
+ * @example
+ * ```typescript
+ * const positionPDA = getPositionAccountPDA(
+ *   lavarageProgram,
+ *   offerAccount,
+ *   userPublicKey
+ * );
+ * ```
+ */
 
 export function getPositionAccountPDA(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
@@ -65,6 +99,19 @@ export function getPositionAccountPDA(
     lavarageProgram.programId
   );
 }
+/**
+ * Gets an associated token account or creates the instruction to create one if it doesn't exist
+ * 
+ * @group Solana
+ * @category Token Accounts
+ * @internal
+ * 
+ * @param lavarageProgram - The Lavarage program instance
+ * @param ownerPublicKey - The owner of the token account
+ * @param tokenAddress - The mint address of the token
+ * @param tokenProgram - Optional token program ID (defaults to TOKEN_PROGRAM_ID)
+ * @returns Object containing the account address and creation instruction
+ */
 
 async function getTokenAccountOrCreateIfNotExists(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
@@ -96,15 +143,70 @@ async function getTokenAccountOrCreateIfNotExists(
     instruction,
   };
 }
-
+/**
+ * Re-exports all types and interfaces from the Lavarage V1 IDL
+ * @group Solana
+ */
 export * from "./idl/lavarage";
+/**
+ * Namespace containing all types and interfaces from the Lavarage V2 IDL
+ * @group Solana
+ */
 export * as IDLV2 from "./idl/lavaragev2";
+/**
+ * Fetches all available lending offers from the Lavarage protocol
+ * 
+ * @group Offer
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @returns Promise resolving to an array of all pool/offer accounts
+ * 
+ * @example
+ * ```typescript
+ * // Fetch all offers
+ * const offers = await getOffers(lavarageProgram);
+ * 
+ * // Process each offer
+ * offers.forEach(offer => {
+ *   console.log('Offer:', offer.publicKey.toString());
+ *   console.log('Data:', offer.account);
+ * });
+ * ```
+ */
 
 export const getOffers = (
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>
 ) => {
   return lavarageProgram.account.pool.all();
 };
+/**
+ * Fetches all open positions from the Lavarage protocol
+ * 
+ * This function filters for positions with a specific data structure size (178 bytes)
+ * and checks for positions that are currently open (non-zero values at offset 40).
+ *
+ * @group Position
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @returns Promise resolving to an array of open position accounts
+ * 
+ * @example
+ * ```typescript
+ * // Get all open positions
+ * const openPositions = await getOpenPositions(lavarageProgram);
+ * 
+ * console.log(`Found ${openPositions.length} open positions`);
+ * 
+ * // Filter positions by user
+ * const userPositions = openPositions.filter(pos => 
+ *   pos.account.owner.equals(userPublicKey)
+ * );
+ * ```
+ * 
+ * @remarks
+ * The function uses memcmp filters to efficiently query only open positions
+ * without fetching closed or liquidated positions.
+ */
 
 export const getOpenPositions = (
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>
@@ -119,6 +221,34 @@ export const getOpenPositions = (
     },
   ]);
 };
+/**
+ * Fetches all closed positions from the Lavarage protocol
+ * 
+ * This function queries positions with three different closed states
+ * 
+ * @group Position
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @returns Promise resolving to an array of all closed position accounts from all three states
+ * 
+ * @example
+ * ```typescript
+ * // Get all closed positions
+ * const closedPositions = await getClosedPositions(lavarageProgram);
+ * 
+ * console.log(`Found ${closedPositions.length} closed positions`);
+ * 
+ * // Filter by specific user
+ * const userClosedPositions = closedPositions.filter(pos =>
+ *   pos.account.owner.equals(userPublicKey)
+ * );
+ * ```
+ * 
+ * @remarks
+ * This function makes three separate blockchain queries to fetch different types of
+ * closed positions and concatenates the results. The status codes (9996, 9997, 9998)
+ * represent different ways a position can be closed.
+ */
 
 export const getClosedPositions = async (
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>
@@ -166,6 +296,39 @@ export const getClosedPositions = async (
       ])
     );
 };
+/**
+ * Fetches all liquidated positions from the Lavarage protocol
+ * 
+ * Liquidated positions are positions that were forcefully closed due to 
+ * insufficient collateral or health factor falling below the threshold.
+ * 
+ * @group Position
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @returns Promise resolving to an array of liquidated position accounts
+ * 
+ * @example
+ * ```typescript
+ * // Get all liquidated positions
+ * const liquidatedPositions = await getLiquidatedPositions(lavarageProgram);
+ * 
+ * console.log(`Found ${liquidatedPositions.length} liquidated positions`);
+ * 
+ * // Analyze liquidation data
+ * liquidatedPositions.forEach(pos => {
+ *   console.log('Position:', pos.publicKey.toString());
+ *   console.log('Liquidated amount:', pos.account.amount);
+ * });
+ * ```
+ * 
+ * @remarks
+ * Position status code 9999 at offset 40 indicates a liquidated position.
+ * This is separate from other closed positions which may have been closed
+ * voluntarily by the user.
+ * 
+ * @see {@link getClosedPositions} - For other types of closed positions
+ * @see {@link getOpenPositions} - For currently active positions
+ */
 
 export const getLiquidatedPositions = (
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>
@@ -183,12 +346,100 @@ export const getLiquidatedPositions = (
     },
   ]);
 };
+/**
+ * Fetches all positions from the Lavarage protocol
+ * 
+ * This function retrieves all position accounts regardless of their state (open, closed, liquidated).
+ * It only filters by the standard data size of position accounts (178 bytes). 
+ *
+ * @group Position
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @returns Promise resolving to an array of position accounts
+ * 
+ * @example
+ * ```typescript
+ * // Get all positions
+ * const allPositions = await getAllPositions(lavarageProgram);
+ * 
+ * console.log(`Found ${allPositions.length} total positions`);
+ * 
+ * // Filter positions by user
+ * const userPositions = allPositions.filter(pos => 
+ *   pos.account.owner.equals(userPublicKey)
+ * );
+ * ```
+ *  
+ * @remarks
+ * Unlike other position query functions, this returns ALL positions without
+ * filtering by status. Use more specific functions like `getOpenPositions`,
+ * `getClosedPositions`, or `getLiquidatedPositions` if you only need positions
+ * with a specific status.
+ * 
+ * @see {@link getOpenPositions} - For only open positions
+ * @see {@link getClosedPositions} - For only closed positions
+ * @see {@link getLiquidatedPositions} - For only liquidated positions
+ */
 
 export const getAllPositions = (
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>
 ) => {
   return lavarageProgram.account.position.all([{ dataSize: 178 }]);
 };
+
+/**
+ * Opens a leveraged trading position on Lavarage V1
+ * 
+ * This function executes a complete leveraged trade by:
+ * 1. Borrowing funds from the lending pool based on leverage
+ * 2. Swapping tokens through Jupiter DEX
+ * 3. Depositing the swapped tokens as collateral
+ * 
+ * @group Position
+ * @category Trading
+ * 
+ * @param lavarageProgram - The Lavarage V1 program instance
+ * @param offer - The lending offer containing terms (interest rate, collateral type, node wallet)
+ * @param jupInstruction - Jupiter swap instructions including setup and swap details
+ * @param marginSOL - The user's margin amount in SOL (as BN)
+ * @param leverage - The leverage multiplier (e.g., 2 for 2x leverage)
+ * @param randomSeed - A keypair used to generate unique position account address
+ * @param tokenProgram - The SPL token program ID
+ * @param partnerFeeRecipient - Optional wallet to receive partner fees
+ * @param partnerFeeMarkup - Optional partner fee amount in basis points
+ * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns A versioned transaction ready to be signed and sent
+ * 
+ * @example
+ * ```typescript
+ * // Open a 2x leveraged position with 1 SOL margin
+ * const marginSOL = new BN(1_000_000_000); // 1 SOL in lamports
+ * const leverage = 2;
+ * const randomSeed = Keypair.generate();
+ * 
+ * const tx = await openTradeV1(
+ *   lavarageProgram,
+ *   offerAccount,
+ *   jupiterInstructions,
+ *   marginSOL,
+ *   leverage,
+ *   randomSeed,
+ *   TOKEN_PROGRAM_ID
+ * );
+ * 
+ * // Sign and send transaction
+ * const signature = await sendAndConfirmTransaction(connection, tx, [wallet, randomSeed]);
+ * ```
+ * 
+ * @remarks
+ * - The function creates token accounts if they don't exist
+ * - Uses Jupiter for token swaps with slippage protection
+ * - Includes partner fee distribution if configured
+ * - Returns a V0 transaction with address lookup tables for efficiency
+ * 
+ * @throws Will throw if token accounts cannot be created or if Jupiter instructions are invalid
+ */
 
 export const openTradeV1 = async (
   lavarageProgram: Program<Lavarage>,
