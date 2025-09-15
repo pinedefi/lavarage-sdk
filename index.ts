@@ -940,7 +940,8 @@ export const openTradeV2 = async (
  * console.log('Take-profit delegate created:', signature);
  * ```
  * 
- * @see {@link closeTpDelegate} - Function to close a position using the delegate
+ * @see {@link modifyTpDelegate} - Modify take-profit settings
+ * @see {@link removeTpDelegate} - Remove take-profit without replacement
  */
 
 export const createTpDelegate = async (
@@ -1140,6 +1141,9 @@ export const modifyTpDelegate = async (
  * 
  * await sendAndConfirmTransaction(connection, tx, [wallet]);
  * ```
+ *
+ * @see {@link createTpDelegate} - Initial creation of take-profit
+ * @see {@link modifyTpDelegate} - Modify existing take-profit settings
  */
 
 export const removeTpDelegate = async (
@@ -1180,6 +1184,32 @@ export const removeTpDelegate = async (
 
   return new VersionedTransaction(messageV0);
 };
+/**
+ * Partially repays a position on Lavarage V1
+ * 
+ * @group Position
+ * @category Trading
+ * 
+ * @param lavarageProgram - The Lavarage V1 program instance
+ * @param position - The position account to partially repay
+ * @param repaymentBps - Repayment amount in basis points (10000 = 100%)
+ * 
+ * @returns Transaction for partial repayment
+ * 
+ * @example
+ * ```typescript
+ * // Repay 50% of the position
+ * const tx = await partialRepayV1(
+ *   lavarageProgram,
+ *   position,
+ *   5000  // 50% in basis points
+ * );
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * 
+ * @see {@link partialRepayV2} - The V2 version supporting multiple quote tokens
+ */
 
 export const partialRepayV1 = async (
   lavarageProgram: Program<Lavarage>,
@@ -1216,6 +1246,32 @@ export const partialRepayV1 = async (
   return new VersionedTransaction(messageV0);
 };
 
+/**
+ * Partially repays a position on Lavarage V2
+ * 
+ * @group Position
+ * @category Trading
+ * 
+ * @param lavarageProgram - The Lavarage V2 program instance
+ * @param position - The position account to partially repay
+ * @param repaymentBps - Repayment amount in basis points (10000 = 100%)
+ * 
+ * @returns Transaction for partial repayment
+ * 
+ * @example
+ * ```typescript
+ * // Repay 30% of the position
+ * const tx = await partialRepayV2(
+ *   lavarageProgram,
+ *   position,
+ *   3000  // 30% in basis points
+ * );
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * 
+ * @see {@link partialRepayV1} - The V1 version limited to SOL as quote token
+ */
 export const partialRepayV2 = async (
   lavarageProgram: Program<LavarageV2>,
   position: ProgramAccount<{
