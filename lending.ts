@@ -20,6 +20,27 @@ import {
 } from "@solana/spl-token";
 import { getPda } from "./index";
 
+/**
+ * Derives a node wallet PDA for lending operations
+ * 
+ * @group Lending
+ * @category Utilities
+ * 
+ * @param operatorPublicKey - The operator's public key
+ * @param mintPublicKey - The token mint public key
+ * @param programId - The Lavarage program ID
+ * 
+ * @returns The derived node wallet PDA
+ * 
+ * @example
+ * ```typescript
+ * const nodeWallet = getNodeWalletPDA(
+ *   operatorPublicKey,
+ *   usdcMint,
+ *   programId
+ * );
+ * ```
+ */
 export function getNodeWalletPDA(
   operatorPublicKey: PublicKey,
   mintPublicKey: PublicKey,
@@ -35,6 +56,27 @@ export function getNodeWalletPDA(
   );
 }
 
+/**
+ * Derives a trading pool PDA for lending operations
+ * 
+ * @group Lending
+ * @category Utilities
+ * 
+ * @param poolOwnerPublicKey - The pool owner's public key
+ * @param tokenPublicKey - The token mint public key
+ * @param programId - The Lavarage program ID
+ * 
+ * @returns The derived trading pool PDA
+ * 
+ * @example
+ * ```typescript
+ * const poolPDA = getTradingPoolPDA(
+ *   poolOwnerPublicKey,
+ *   usdcMint,
+ *   programId
+ * );
+ * ```
+ */
 export function getTradingPoolPDA(
   poolOwnerPublicKey: PublicKey,
   tokenPublicKey: PublicKey,
@@ -105,6 +147,43 @@ async function createNodeWallet(
   };
 }
 
+/**
+ * Deposits funds into a node wallet for lending operations
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage V1 program instance
+ * @param params - Deposit parameters
+ * @param params.nodeWallet - The node wallet PDA to deposit into
+ * @param params.mint - Token mint address (optional for V1 SOL deposits)
+ * @param params.funder - The account providing the funds
+ * @param params.amount - Amount to deposit (in lamports for SOL or token units)
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to deposit funds
+ * 
+ * @example
+ * ```typescript
+ * // Deposit SOL
+ * const tx = await depositFunds(lavarageProgram, {
+ *   nodeWallet: nodeWalletPDA,
+ *   funder: lenderPublicKey,
+ *   amount: 1000000000 // 1 SOL
+ * });
+ * 
+ * // Deposit USDC
+ * const tx = await depositFunds(lavarageProgram, {
+ *   nodeWallet: nodeWalletPDA,
+ *   mint: usdcMint.toString(),
+ *   funder: lenderPublicKey,
+ *   amount: 1000000 // 1 USDC (6 decimals)
+ * });
+ * ```
+ * 
+ * @see {@link withdrawFundsV1} - Withdraw funds from a node wallet
+ * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
+ */
 export async function depositFunds(
   lavarageProgram: Program<Lavarage>,
   params: {
@@ -188,6 +267,34 @@ export async function depositFunds(
   return new VersionedTransaction(messageV0);
 }
 
+/**
+ * Withdraws funds from a node wallet on Lavarage V1
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage V1 program instance
+ * @param params - Withdrawal parameters
+ * @param params.nodeWallet - The node wallet PDA to withdraw from
+ * @param params.funder - The account receiving the withdrawn funds
+ * @param params.amount - Amount to withdraw in lamports
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to withdraw funds
+ * 
+ * @example
+ * ```typescript
+ * const tx = await withdrawFundsV1(lavarageProgram, {
+ *   nodeWallet: nodeWalletPDA,
+ *   funder: lenderPublicKey,
+ *   amount: 1000000000 // 1 SOL
+ * });
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * @see {@link depositFunds} - Deposit funds into a node wallet
+ * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
+ */
 export async function withdrawFundsV1(
   lavarageProgram: Program<Lavarage>,
   params: {
@@ -222,6 +329,39 @@ export async function withdrawFundsV1(
   return new VersionedTransaction(messageV0);
 }
 
+/**
+ * Withdraws funds from a node wallet on Lavarage V2
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage V2 program instance
+ * @param params - Withdrawal parameters
+ * @param params.nodeWallet - The node wallet PDA to withdraw from
+ * @param params.funder - The account receiving the withdrawn funds
+ * @param params.mint - Token mint address
+ * @param params.amount - Amount to withdraw in token units
+ * @param params.fromTokenAccount - Optional source token account (auto-derived if not provided)
+ * @param params.toTokenAccount - Optional destination token account (auto-derived if not provided)
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to withdraw funds
+ * 
+ * @example
+ * ```typescript
+ * // Withdraw USDC
+ * const tx = await withdrawFundsV2(lavarageProgram, {
+ *   nodeWallet: nodeWalletPDA,
+ *   funder: lenderPublicKey,
+ *   mint: usdcMint.toString(),
+ *   amount: 1000000 // 1 USDC (6 decimals)
+ * });
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * @see {@link depositFunds} - Deposit funds into a node wallet
+ * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
+ */
 export async function withdrawFundsV2(
   lavarageProgram: Program<LavarageV2>,
   params: {
@@ -272,7 +412,45 @@ export async function withdrawFundsV2(
 
   return new VersionedTransaction(messageV0);
 }
-
+/**
+ * Withdraws funds from a node wallet (supports both V1 and V2)
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param params - Withdrawal parameters
+ * @param params.nodeWallet - The node wallet PDA to withdraw from
+ * @param params.funder - The account receiving the withdrawn funds
+ * @param params.amount - Amount to withdraw
+ * @param params.mint - Token mint address (required for V2, omit for V1 SOL withdrawal)
+ * @param params.fromTokenAccount - Optional source token account (V2 only)
+ * @param params.toTokenAccount - Optional destination token account (V2 only)
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to withdraw funds
+ * 
+ * @example
+ * ```typescript
+ * // V1: Withdraw SOL
+ * const tx = await withdrawFunds(lavarageProgram, {
+ *   nodeWallet: nodeWalletPDA,
+ *   funder: lenderPublicKey,
+ *   amount: 1000000000 // 1 SOL
+ * });
+ * 
+ * // V2: Withdraw USDC
+ * const tx = await withdrawFunds(lavarageProgram, {
+ *   nodeWallet: nodeWalletPDA,
+ *   funder: lenderPublicKey,
+ *   mint: usdcMint.toString(),
+ *   amount: 1000000 // 1 USDC
+ * });
+ * ```
+ * @see {@link depositFunds} - Deposit funds into a node wallet
+ * @see {@link withdrawFundsV1} - V1 specific implementation
+ * @see {@link withdrawFundsV2} - V2 specific implementation
+ */
 // Unified withdraw function that works with both V1 and V2
 export async function withdrawFunds(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
@@ -307,6 +485,38 @@ export async function withdrawFunds(
   }
 }
 
+/**
+ * Creates a lending offer/pool on Lavarage
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param params - Offer creation parameters
+ * @param params.tradingPool - The trading pool PDA
+ * @param params.poolOwner - The pool owner's public key
+ * @param params.mint - The collateral token mint address
+ * @param params.quoteMint - The quote token mint address
+ * @param params.interestRate - Interest rate for the pool
+ * @param params.maxExposure - Maximum exposure limit
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to create the offer
+ * 
+ * @example
+ * ```typescript
+ * const tx = await createOffer(lavarageProgram, {
+ *   tradingPool: poolPDA,
+ *   poolOwner: lenderPublicKey,
+ *   mint: collateralMint.toString(),
+ *   quoteMint: usdcMint.toString(),
+ *   interestRate: 500, // 5%
+ *   maxExposure: 1000000
+ * });
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ */
 export async function createOffer(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
@@ -421,6 +631,34 @@ export async function createOffer(
   return new VersionedTransaction(messageV0);
 }
 
+/**
+ * Updates the maximum exposure limit for a trading pool
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param params - Update parameters
+ * @param params.tradingPool - The trading pool PDA
+ * @param params.nodeWallet - The node wallet address
+ * @param params.poolOwner - The pool owner's public key
+ * @param params.maxExposure - New maximum exposure limit
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to update max exposure
+ * 
+ * @example
+ * ```typescript
+ * const tx = await updateMaxExposure(lavarageProgram, {
+ *   tradingPool: poolPDA,
+ *   nodeWallet: nodeWalletAddress,
+ *   poolOwner: lenderPublicKey,
+ *   maxExposure: 2000000 // New limit
+ * });
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ */
 export async function updateMaxExposure(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
@@ -457,6 +695,34 @@ export async function updateMaxExposure(
   return new VersionedTransaction(messageV0);
 }
 
+/**
+ * Updates the interest rate for a trading pool
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param params - Update parameters
+ * @param params.tradingPool - The trading pool PDA
+ * @param params.nodeWallet - The node wallet address
+ * @param params.poolOwner - The pool owner's public key
+ * @param params.interestRate - New interest rate
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to update interest rate
+ * 
+ * @example
+ * ```typescript
+ * const tx = await updateInterestRate(lavarageProgram, {
+ *   tradingPool: poolPDA,
+ *   nodeWallet: nodeWalletAddress,
+ *   poolOwner: lenderPublicKey,
+ *   interestRate: 750 // 7.5%
+ * });
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ */
 export async function updateInterestRate(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
@@ -493,6 +759,41 @@ export async function updateInterestRate(
   return new VersionedTransaction(messageV0);
 }
 
+/**
+ * Updates multiple parameters of a trading pool in a single transaction
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param params - Update parameters
+ * @param params.tradingPool - The trading pool PDA
+ * @param params.poolOwner - The pool owner's public key
+ * @param params.nodeWallet - The node wallet address
+ * @param params.mint - The token mint address
+ * @param params.interestRate - New interest rate
+ * @param params.maxExposure - New maximum exposure limit
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to update pool parameters
+ * 
+ * @example
+ * ```typescript
+ * const tx = await updateOffer(lavarageProgram, {
+ *   tradingPool: poolPDA,
+ *   poolOwner: lenderPublicKey,
+ *   nodeWallet: nodeWalletAddress,
+ *   mint: collateralMint.toString(),
+ *   interestRate: 600, // 6%
+ *   maxExposure: 3000000
+ * });
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * 
+ * @see {@link updateInterestRate} - Update only interest rate
+ * @see {@link updateMaxExposure} - Update only max exposure
+ */
 export async function updateOffer(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {
@@ -568,6 +869,34 @@ export async function updateOffer(
   return new VersionedTransaction(messageV0);
 }
 
+/**
+ * Updates the maximum borrow limit for a trading pool
+ * 
+ * @group Lending
+ * @category Operations
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param params - Update parameters
+ * @param params.tradingPool - The trading pool PDA
+ * @param params.nodeWallet - The node wallet address
+ * @param params.oracle - The oracle public key authorized to update
+ * @param params.maxBorrow - New maximum borrow limit
+ * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to update max borrow limit
+ * 
+ * @example
+ * ```typescript
+ * const tx = await updateMaxBorrow(lavarageProgram, {
+ *   tradingPool: poolPDA,
+ *   nodeWallet: nodeWalletAddress,
+ *   oracle: oraclePublicKey,
+ *   maxBorrow: 5000000
+ * });
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ */
 export async function updateMaxBorrow(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   params: {

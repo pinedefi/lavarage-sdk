@@ -3,7 +3,7 @@
     "entryPoints": ["./index.ts"],
     "out": "docs",
     "name": "Lavarage SDK Documentation",
-    // "readme": "",
+    "readme": "docs-readme.md",
     "includeVersion": true,
     "excludePrivate": true,
     "excludeProtected": false,
@@ -14,15 +14,10 @@
     "categorizeByGroup": true,
     "defaultCategory": "Other",
     "categoryOrder": [
-        "Core",        
-        "Offer",
-        "Position",
-        "Pool",
-        "Lender",
-        "Token",
+        "Traders",
+        "Lending",
         "Solana",
         "EVM",
         "*"
     ]
-
 }

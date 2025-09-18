@@ -46,7 +46,8 @@ export * as lending from "./lending";
 /**
  * Derives a Program Derived Address (PDA) for the given seed(s) and program ID
  * 
- * @group Core
+ * @group Traders
+ * @category Utilities
  * 
  * @param seed - Single buffer or array of buffers to use as seeds
  * @param programId - The Solana program ID to derive the PDA from
@@ -67,7 +68,8 @@ export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
 /**
  * Generates a Position Account PDA for a specific offer and user
  *
- * @group Position
+ * @group Traders
+ * @category Utilities
  *
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
  * @param offer - The offer program account
@@ -156,7 +158,8 @@ export * as IDLV2 from "./idl/lavaragev2";
 /**
  * Fetches all available lending offers from the Lavarage protocol
  * 
- * @group Offer
+ * @group Traders
+ * @category Queries
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
  * @returns Promise resolving to an array of all pool/offer accounts
@@ -185,7 +188,8 @@ export const getOffers = (
  * This function filters for positions with a specific data structure size (178 bytes)
  * and checks for positions that are currently open.
  *
- * @group Position
+ * @group Traders
+ * @category Queries
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
  * @returns Promise resolving to an array of open position accounts
@@ -225,7 +229,8 @@ export const getOpenPositions = (
  * Fetches all closed positions from the Lavarage protocol
  * 
  * 
- * @group Position
+ * @group Traders
+ * @category Queries
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
  * @returns Promise resolving to an array of all closed position accounts from all three states
@@ -297,7 +302,8 @@ export const getClosedPositions = async (
  * Liquidated positions are positions that were forcefully closed due to 
  * insufficient collateral or health factor falling below the threshold.
  * 
- * @group Position
+ * @group Traders
+ * @category Queries
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
  * @returns Promise resolving to an array of liquidated position accounts
@@ -342,7 +348,8 @@ export const getLiquidatedPositions = (
  * 
  * This function retrieves all position accounts regardless of their state (open, closed, liquidated).
  *
- * @group Position
+ * @group Traders
+ * @category Queries
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
  * @returns Promise resolving to an array of position accounts
@@ -385,7 +392,7 @@ export const getAllPositions = (
  * 2. Swapping tokens through Jupiter DEX
  * 3. Depositing the swapped tokens as collateral
  * 
- * @group Position
+ * @group Traders
  * @category Trading
  * 
  * @param lavarageProgram - The Lavarage V1 program instance
@@ -632,7 +639,7 @@ export const openTradeV1 = async (
  * 2. Swapping tokens through Jupiter DEX
  * 3. Depositing the swapped tokens as collateral
  * 
- * @group Position
+ * @group Traders
  * @category Trading
  * 
  * @param lavarageProgram - The Lavarage V2 program instance
@@ -905,7 +912,7 @@ export const openTradeV2 = async (
  * Creates a take-profit delegate for automated position closing
  * 
  * 
- * @group Position
+ * @group Traders
  * @category Automation
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
@@ -1014,7 +1021,7 @@ export const createTpDelegate = async (
  * Modifies take-profit setting for an existing position. 
  * 
  * 
- * @group Position
+ * @group Traders
  * @category Automation
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
@@ -1122,7 +1129,7 @@ export const modifyTpDelegate = async (
 /**
  * Removes take-profit settings from a position
  * 
- * @group Position
+ * @group Traders
  * @category Automation
  * 
  * @param lavarageProgram - The Lavarage program instance (V1 or V2)
@@ -1187,7 +1194,7 @@ export const removeTpDelegate = async (
 /**
  * Partially repays a position on Lavarage V1
  * 
- * @group Position
+ * @group Traders
  * @category Trading
  * 
  * @param lavarageProgram - The Lavarage V1 program instance
@@ -1249,7 +1256,7 @@ export const partialRepayV1 = async (
 /**
  * Partially repays a position on Lavarage V2
  * 
- * @group Position
+ * @group Traders
  * @category Trading
  * 
  * @param lavarageProgram - The Lavarage V2 program instance
@@ -1270,7 +1277,7 @@ export const partialRepayV1 = async (
  * await sendAndConfirmTransaction(connection, tx, [wallet]);
  * ```
  * 
- * @see {@link partialRepayV1} - The V1 version limited to SOL as quote token
+ * @see {@link partialRepayV1} - The V1 version supporting SOL as quote token
  */
 export const partialRepayV2 = async (
   lavarageProgram: Program<LavarageV2>,
@@ -1323,6 +1330,40 @@ export const partialRepayV2 = async (
   return new VersionedTransaction(messageV0);
 };
 
+/**
+ * Closes a trading position on Lavarage V1
+ * 
+ * @group Traders
+ * @category Trading
+ * 
+ * @param lavarageProgram - The Lavarage V1 program instance
+ * @param position - The position account to close
+ * @param offer - The offer/pool account associated with the position
+ * @param jupInstruction - Jupiter swap instructions and quote for closing
+ * @param partnerFeeRecipient - Optional wallet to receive partner fees
+ * @param partnerFeeMarkup - Optional partner fee amount in basis points
+ * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to close the position
+ * 
+ * @example
+ * ```typescript
+ * const jupQuote = await getJupiterQuote(...);
+ * const tx = await closeTradeV1(
+ *   lavarageProgram,
+ *   position,
+ *   offer,
+ *   jupQuote,
+ *   partnerWallet, // optional
+ *   100, // optional fee in bps
+ *   150000 // optional priority fee
+ * );
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * @see {@link openTradeV1} - The V1 version for opening positions
+ * @see {@link partialRepayV1} - Partial repayments on V1 
+ */
 export const closeTradeV1 = async (
   lavarageProgram: Program<Lavarage>,
   position: ProgramAccount<{
@@ -1578,6 +1619,42 @@ export const closeTradeV1 = async (
   return tx;
 };
 
+/**
+ * Closes a trading position on Lavarage V2
+ * 
+ * @group Traders
+ * @category Trading
+ * 
+ * @param lavarageProgram - The Lavarage V2 program instance
+ * @param position - The position account to close
+ * @param offer - The offer/pool account associated with the position
+ * @param jupInstruction - Jupiter swap instructions and quote for closing
+ * @param quoteToken - The quote token mint address for this position
+ * @param partnerFeeRecipient - Optional wallet to receive partner fees
+ * @param partnerFeeMarkup - Optional partner fee amount in basis points
+ * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to close the position
+ * 
+ * @example
+ * ```typescript
+ * const jupQuote = await getJupiterQuote(...);
+ * const tx = await closeTradeV2(
+ *   lavarageProgram,
+ *   position,
+ *   offer,
+ *   jupQuote,
+ *   usdcMint, // quote token
+ *   partnerWallet, // optional
+ *   100, // optional fee in bps
+ *   150000 // optional priority fee
+ * );
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * @see {@link openTradeV2} - The V2 version for opening positions
+ * @see {@link partialRepayV2} - Partial repay a V2 position 
+ */
 export const closeTradeV2 = async (
   lavarageProgram: Program<LavarageV2>,
   position: ProgramAccount<{
@@ -1883,6 +1960,38 @@ export const closeTradeV2 = async (
   return tx;
 };
 
+/**
+ * Retrieves delegate accounts for automated position management
+ * 
+ * @group Traders
+ * @category Queries
+ * 
+ * @param lavarageProgram - The Lavarage program instance (V1 or V2)
+ * @param userPubKey - Optional user public key to filter delegates
+ * 
+ * @returns Array of delegate accounts with parsed price data
+ * 
+ * @example
+ * ```typescript
+ * // Get all delegates for a specific user
+ * const userDelegates = await getDelegateAccounts(
+ *   lavarageProgram,
+ *   userPublicKey
+ * );
+ * 
+ * // Get all delegates (no filter)
+ * const allDelegates = await getDelegateAccounts(lavarageProgram);
+ * 
+ * // Access parsed data
+ * userDelegates.forEach(delegate => {
+ *   console.log('TP Price:', delegate.parsed.tpPrice.toString());
+ *   console.log('Threshold:', delegate.parsed.tpThreshold.toString());
+ * });
+ * ```
+ * @see {@link createTpDelegate} - Create a new take-profit delegate
+ * @see {@link modifyTpDelegate} - Modify existing take-profit settings
+ * @see {@link removeTpDelegate} - Remove take-profit settings
+ */
 export const getDelegateAccounts = async (
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   userPubKey?: PublicKey
@@ -1919,6 +2028,39 @@ const getQuoteCurrencySpecificAddressLookupTable = (quoteCurrency: string) => {
   }
 };
 
+/**
+ * Splits a position into two separate positions on Lavarage V2
+ * 
+ * @group Traders
+ * @category PositionManagement
+ * 
+ * @param lavarageProgram - The Lavarage V2 or V1 program instance
+ * @param position - The original position to split
+ * @param offer - The offer/pool account associated with the position
+ * @param quoteToken - The quote token mint address
+ * @param propotionBps - Split ratio in basis points (5000 = 50/50 split)
+ * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Object containing transaction and new position addresses
+ * 
+ * @example
+ * ```typescript
+ * // Split position 70/30
+ * const result = await splitPositionV2(
+ *   lavarageProgram,
+ *   position,
+ *   offer,
+ *   usdcMint,
+ *   7000  // 70% to first position, 30% to second
+ * );
+ * 
+ * const tx = result.transaction;
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * 
+ * console.log('New positions:', result.newPositionAddresses);
+ * ```
+ * @see {@link mergePositionV2} - Merge two positions into one
+ */
 export const splitPositionV2 = async (
   lavarageProgram: Program<LavarageV2> | Program<Lavarage>,
   position: ProgramAccount<{
@@ -2048,6 +2190,37 @@ export const splitPositionV2 = async (
   };
 };
 
+/**
+ * Merges two positions into a single position on Lavarage V2
+ * 
+ * @group Traders
+ * @category PositionManagement
+ * 
+ * @param lavarageProgram - The Lavarage V2 program instance
+ * @param position1 - The first position to merge
+ * @param position2 - The second position to merge
+ * @param offer - The offer/pool account (must be same for both positions)
+ * @param quoteToken - The quote token mint address
+ * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * 
+ * @returns Transaction to merge the positions
+ * 
+ * @example
+ * ```typescript
+ * // Merge two positions into one
+ * const tx = await mergePositionV2(
+ *   lavarageProgram,
+ *   position1,
+ *   position2,
+ *   offer,
+ *   usdcMint
+ * );
+ * 
+ * await sendAndConfirmTransaction(connection, tx, [wallet]);
+ * ```
+ * 
+ * @see {@link splitPositionV2} - Split a position into two
+ */
 export const mergePositionV2 = async (
   lavarageProgram: Program<LavarageV2>,
   position1: ProgramAccount<{
