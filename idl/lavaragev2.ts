@@ -441,6 +441,89 @@ export type Lavarage = {
       ]
     },
     {
+      "name": "tradingOpenBorrowWithReferral",
+      "accounts": [
+        {
+          "name": "positionAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "trader",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "instructions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "randomAccountAsId",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "fromTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "toTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "positionSize",
+          "type": "u64"
+        },
+        {
+          "name": "userPays",
+          "type": "u64"
+        },
+        {
+          "name": "discountBps",
+          "type": "u64"
+        },
+        {
+          "name": "referralBps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "tradingOpenAddCollateral",
       "accounts": [
         {
@@ -2040,6 +2123,89 @@ export const IDL: Lavarage = {
         },
         {
           "name": "userPays",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "tradingOpenBorrowWithReferral",
+      "accounts": [
+        {
+          "name": "positionAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "trader",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "instructions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "randomAccountAsId",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "fromTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "toTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "positionSize",
+          "type": "u64"
+        },
+        {
+          "name": "userPays",
+          "type": "u64"
+        },
+        {
+          "name": "discountBps",
+          "type": "u64"
+        },
+        {
+          "name": "referralBps",
           "type": "u64"
         }
       ]

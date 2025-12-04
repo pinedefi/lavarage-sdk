@@ -29,6 +29,7 @@ export interface BuyEvent {
   initialMargin: bigint;
   transactionHash: string;
   timestamp: number;
+  interestRate: number;
 }
 
 export interface SellEvent {

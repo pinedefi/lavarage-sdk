@@ -53,6 +53,7 @@ export const openPositionEvm = async (
     inchRouter,
     integratorFeeAddress = ZeroAddress,
     buyerContribution,
+    tokenApproval,
     gasLimit,
     gasPrice,
   }: {
@@ -63,6 +64,7 @@ export const openPositionEvm = async (
     inchRouter: string;
     integratorFeeAddress?: string;
     buyerContribution: BigNumberish;
+    tokenApproval: string;
     gasLimit?: string | number;
     gasPrice?: string | number;
   }
@@ -91,6 +93,7 @@ export const openPositionEvm = async (
     tokenHolder,
     inchRouter,
     integratorFeeAddress,
+    tokenApproval,
     txOptions
   );
 };
@@ -132,6 +135,7 @@ export const closePositionEvm = async (
     integratorFeeAddress = ZeroAddress,
     gasLimit,
     gasPrice,
+    tokenApproval,
   }: {
     loanId: BigNumberish;
     sellingCode: string;
@@ -140,6 +144,7 @@ export const closePositionEvm = async (
     integratorFeeAddress?: string;
     gasLimit?: string | number;
     gasPrice?: string | number;
+    tokenApproval: string;
   }
 ): Promise<ContractTransaction> => {
   const contract = new Contract(
@@ -159,6 +164,7 @@ export const closePositionEvm = async (
     tokenHolder,
     inchRouter,
     integratorFeeAddress,
+    tokenApproval,
     Object.keys(txOptions).length > 0 ? txOptions : {}
   );
 };
@@ -214,7 +220,8 @@ export async function getPositionsEvm(
         collateralAmount: loan.collateralAmount,
         initialMargin: loan.userPaid,
         transactionHash: "", // Not available from loan data
-        timestamp: Number(loan.timestamp)
+        timestamp: Number(loan.timestamp),
+        interestRate: loan.collateral.interestRate,
       });
     }
   }
@@ -816,6 +823,49 @@ export async function getAvailableExposureEvm(
   );
   return contract.getAvailableExposure(collateralAddress);
 }
+
+/**
+ * Creates an unsigned transaction to liquidate a trading position on EVM chain
+ * @param provider - Ethers provider
+ * @param borrowerOpsContractAddress - BorrowerOperations contract address
+ * @param params - Liquidation parameters
+ * @returns Unsigned transaction object
+ */
+export const liquidatePositionEvm = async (
+  provider: Provider,
+  borrowerOpsContractAddress: string,
+  {
+    loanId,
+    tokenHolder,
+    closingPositionSize,
+    gasLimit,
+    gasPrice,
+  }: {
+    loanId: BigNumberish;
+    tokenHolder: string;
+    closingPositionSize: BigNumberish;
+    gasLimit?: string | number;
+    gasPrice?: string | number;
+  }
+): Promise<ContractTransaction> => {
+  const contract = new Contract(
+    borrowerOpsContractAddress,
+    borrowerOperationsAbi,
+    provider
+  );
+
+  const txOptions: { gasLimit?: BigNumberish; gasPrice?: BigNumberish } = {};
+
+  if (gasLimit) txOptions.gasLimit = gasLimit;
+  if (gasPrice) txOptions.gasPrice = gasPrice;
+
+  return contract.liquidate.populateTransaction(
+    loanId,
+    tokenHolder,
+    closingPositionSize,
+    Object.keys(txOptions).length > 0 ? txOptions : {}
+  );
+};
 
 /**
  * Update max lend per token for multiple collaterals in batch

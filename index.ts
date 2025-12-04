@@ -457,6 +457,7 @@ export const openTradeV1 = async (
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
+  splitTransactions?: boolean,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -584,17 +585,17 @@ export const openTradeV1 = async (
     .remainingAccounts(
       partnerFeeRecipient && partnerFeeMarkupAsPkey
         ? [
-            {
-              pubkey: partnerFeeRecipient,
-              isSigner: false,
-              isWritable: true,
-            },
-            {
-              pubkey: partnerFeeMarkupAsPkey,
-              isSigner: false,
-              isWritable: false,
-            },
-          ]
+          {
+            pubkey: partnerFeeRecipient,
+            isSigner: false,
+            isWritable: true,
+          },
+          {
+            pubkey: partnerFeeMarkupAsPkey,
+            isSigner: false,
+            isWritable: false,
+          },
+        ]
         : []
     )
     .instruction();
@@ -620,6 +621,39 @@ export const openTradeV1 = async (
   const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
     microLamports: computeBudgetMicroLamports ?? 100000,
   });
+
+  if (splitTransactions) {
+    const setUpInstructions = [
+      fromTokenAccount.instruction!,
+      toTokenAccount.instruction!,
+      ...setupInstructions.map(deserializeInstruction),
+    ]
+
+    const allInstructions = [
+      tradingOpenBorrowInstruction!,
+      deserializeInstruction(swapInstructionPayload), ,
+      openAddCollateralInstruction!,
+      computeBudgetMicroLamports ? computeFeeIx : undefined,
+    ].filter(Boolean) as TransactionInstruction[];
+
+    const messageV01 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: setUpInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx2 = new VersionedTransaction(messageV01);
+
+    const messageV0 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: allInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx = new VersionedTransaction(messageV0);
+
+    return [tx2, tx];
+  }
 
   const allInstructions = [
     fromTokenAccount.instruction!,
@@ -720,6 +754,7 @@ export const openTradeV2 = async (
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
+  splitTransactions?: boolean,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -870,28 +905,28 @@ export const openTradeV2 = async (
     .remainingAccounts(
       partnerFeeRecipient && partnerFeeMarkupAsPkey
         ? [
-            {
-              pubkey: getAssociatedTokenAddressSync(
-                quoteToken,
-                partnerFeeRecipient,
-                false,
-                quoteTokenProgram
-              ),
-              isSigner: false,
-              isWritable: true,
-            },
-            {
-              pubkey: partnerFeeMarkupAsPkey,
-              isSigner: false,
-              isWritable: false,
-            },
-          ]
+          {
+            pubkey: getAssociatedTokenAddressSync(
+              quoteToken,
+              partnerFeeRecipient,
+              false,
+              quoteTokenProgram
+            ),
+            isSigner: false,
+            isWritable: true,
+          },
+          {
+            pubkey: partnerFeeMarkupAsPkey,
+            isSigner: false,
+            isWritable: false,
+          },
+        ]
         : []
     )
     .instruction();
 
   const openAddCollateralInstruction = await lavarageProgram.methods
-    .tradingOpenAddCollateral(offer.account.interestRate)
+    .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
     .accountsStrict({
       tradingPool: offer.publicKey,
       trader: lavarageProgram.provider.publicKey!,
@@ -911,6 +946,39 @@ export const openTradeV2 = async (
   const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
     microLamports: computeBudgetMicroLamports ?? 100000,
   });
+
+  if (splitTransactions) {
+    const setUpInstructions = [
+      fromTokenAccount.instruction!,
+      toTokenAccount.instruction!,
+      ...setupInstructions.map(deserializeInstruction),
+    ]
+
+    const allInstructions = [
+      tradingOpenBorrowInstruction!,
+      deserializeInstruction(swapInstructionPayload), ,
+      openAddCollateralInstruction!,
+      computeBudgetMicroLamports ? computeFeeIx : undefined,
+    ].filter(Boolean) as TransactionInstruction[];
+
+    const messageV01 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: setUpInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx2 = new VersionedTransaction(messageV01);
+
+    const messageV0 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: allInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx = new VersionedTransaction(messageV0);
+
+    return [tx2, tx];
+  }
 
   const allInstructions = [
     fromTokenAccount.instruction!,
@@ -1010,20 +1078,20 @@ export const createTpDelegate = async (
     .remainingAccounts(
       partnerFeeRecipient
         ? [
-            {
-              pubkey:
-                quoteToken.toBase58() ==
+          {
+            pubkey:
+              quoteToken.toBase58() ==
                 "So11111111111111111111111111111111111111112"
-                  ? partnerFeeRecipient
-                  : getAssociatedTokenAddressSync(
-                      quoteToken,
-                      partnerFeeRecipient,
-                      false
-                    ),
-              isSigner: false,
-              isWritable: true,
-            },
-          ]
+                ? partnerFeeRecipient
+                : getAssociatedTokenAddressSync(
+                  quoteToken,
+                  partnerFeeRecipient,
+                  false
+                ),
+            isSigner: false,
+            isWritable: true,
+          },
+        ]
         : []
     )
     .instruction();
@@ -1119,20 +1187,20 @@ export const modifyTpDelegate = async (
     .remainingAccounts(
       partnerFeeRecipient
         ? [
-            {
-              pubkey:
-                quoteToken.toBase58() ==
+          {
+            pubkey:
+              quoteToken.toBase58() ==
                 "So11111111111111111111111111111111111111112"
-                  ? partnerFeeRecipient
-                  : getAssociatedTokenAddressSync(
-                      quoteToken,
-                      partnerFeeRecipient,
-                      false
-                    ),
-              isSigner: false,
-              isWritable: true,
-            },
-          ]
+                ? partnerFeeRecipient
+                : getAssociatedTokenAddressSync(
+                  quoteToken,
+                  partnerFeeRecipient,
+                  false
+                ),
+            isSigner: false,
+            isWritable: true,
+          },
+        ]
         : []
     )
     .instruction();
@@ -1415,6 +1483,7 @@ export const closeTradeV1 = async (
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
+  splitTransactions?: boolean,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -1541,17 +1610,17 @@ export const closeTradeV1 = async (
       .remainingAccounts(
         partnerFeeRecipient && partnerFeeMarkupAsPkey
           ? [
-              {
-                pubkey: partnerFeeRecipient,
-                isSigner: false,
-                isWritable: true,
-              },
-              {
-                pubkey: partnerFeeMarkupAsPkey,
-                isSigner: false,
-                isWritable: false,
-              },
-            ]
+            {
+              pubkey: partnerFeeRecipient,
+              isSigner: false,
+              isWritable: true,
+            },
+            {
+              pubkey: partnerFeeMarkupAsPkey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ]
           : []
       )
       .instruction();
@@ -1574,17 +1643,17 @@ export const closeTradeV1 = async (
       .remainingAccounts(
         partnerFeeRecipient && partnerFeeMarkupAsPkey
           ? [
-              {
-                pubkey: partnerFeeRecipient,
-                isSigner: false,
-                isWritable: true,
-              },
-              {
-                pubkey: partnerFeeMarkupAsPkey,
-                isSigner: false,
-                isWritable: false,
-              },
-            ]
+            {
+              pubkey: partnerFeeRecipient,
+              isSigner: false,
+              isWritable: true,
+            },
+            {
+              pubkey: partnerFeeMarkupAsPkey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ]
           : []
       )
       .instruction();
@@ -1599,7 +1668,7 @@ export const closeTradeV1 = async (
       ...setupInstructions.map(deserializeInstruction),
       deserializeInstruction(swapInstructionPayload),
       deserializeInstruction(cleanupInstruction),
-    ];
+    ].filter((i) => !!i);
     addressLookupTableAccounts.push(
       ...(await getAddressLookupTableAccounts([
         "5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi",
@@ -1624,17 +1693,51 @@ export const closeTradeV1 = async (
     microLamports: computeBudgetMicroLamports ?? 100000,
   });
 
-  const allInstructions = [
-    jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-    jupInstruction.instructions?.tokenLedgerInstruction
-      ? createAssociatedTokenAccountInstruction
-      : null,
-    jupInstruction.instructions?.tokenLedgerInstruction
-      ? deserializeInstruction(
+  if (splitTransactions) {
+    const setUpInstructions = [
+      jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
+      createAssociatedTokenAccountInstruction
+    ].filter((i) => !!i);
+
+    const allInstructions = [
+      jupInstruction.instructions?.tokenLedgerInstruction
+        ? deserializeInstruction(
           jupInstruction.instructions.tokenLedgerInstruction
         )
+        : null,
+      closePositionIx,
+      ...jupiterIxs,
+      repaySolIx,
+      computeBudgetMicroLamports ? computeFeeIx : undefined,
+    ].filter((i) => !!i);
+
+    const messageV01 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: setUpInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx = new VersionedTransaction(messageV01);
+
+    const messageV02 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: allInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx2 = new VersionedTransaction(messageV02);
+
+    return [tx, tx2];
+  }
+
+  const allInstructions = [
+    jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
+    createAssociatedTokenAccountInstruction,
+    jupInstruction.instructions?.tokenLedgerInstruction
+      ? deserializeInstruction(
+        jupInstruction.instructions.tokenLedgerInstruction
+      )
       : null,
-    toTokenAccount.instruction!,
     closePositionIx,
     ...jupiterIxs,
     repaySolIx,
@@ -1716,6 +1819,7 @@ export const closeTradeV2 = async (
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
+  splitTransactions?: boolean,
 ) => {
   let partnerFeeMarkupAsPkey;
   if (partnerFeeMarkup) {
@@ -1865,22 +1969,22 @@ export const closeTradeV2 = async (
       .remainingAccounts(
         partnerFeeRecipient && partnerFeeMarkupAsPkey
           ? [
-              {
-                pubkey: getAssociatedTokenAddressSync(
-                  quoteToken,
-                  partnerFeeRecipient,
-                  false,
-                  quoteTokenProgram
-                ),
-                isSigner: false,
-                isWritable: true,
-              },
-              {
-                pubkey: partnerFeeMarkupAsPkey,
-                isSigner: false,
-                isWritable: false,
-              },
-            ]
+            {
+              pubkey: getAssociatedTokenAddressSync(
+                quoteToken,
+                partnerFeeRecipient,
+                false,
+                quoteTokenProgram
+              ),
+              isSigner: false,
+              isWritable: true,
+            },
+            {
+              pubkey: partnerFeeMarkupAsPkey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ]
           : []
       )
       .instruction();
@@ -1922,17 +2026,22 @@ export const closeTradeV2 = async (
       .remainingAccounts(
         partnerFeeRecipient && partnerFeeMarkupAsPkey
           ? [
-              {
-                pubkey: partnerFeeRecipient,
-                isSigner: false,
-                isWritable: true,
-              },
-              {
-                pubkey: partnerFeeMarkupAsPkey,
-                isSigner: false,
-                isWritable: false,
-              },
-            ]
+            {
+              pubkey: getAssociatedTokenAddressSync(
+                quoteToken,
+                partnerFeeRecipient,
+                false,
+                quoteTokenProgram
+              ),
+              isSigner: false,
+              isWritable: true,
+            },
+            {
+              pubkey: partnerFeeMarkupAsPkey,
+              isSigner: false,
+              isWritable: false,
+            },
+          ]
           : []
       )
       .instruction();
@@ -1974,17 +2083,51 @@ export const closeTradeV2 = async (
     microLamports: computeBudgetMicroLamports ?? 100000,
   });
 
-  const allInstructions = [
-    jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-    jupInstruction.instructions?.tokenLedgerInstruction
-      ? createAssociatedTokenAccountInstruction
-      : null,
-    jupInstruction.instructions?.tokenLedgerInstruction
-      ? deserializeInstruction(
+  if (splitTransactions) {
+    const setUpInstructions = [
+      jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
+      createAssociatedTokenAccountInstruction,
+    ].filter((i) => !!i);
+
+    const allInstructions = [
+      jupInstruction.instructions?.tokenLedgerInstruction
+        ? deserializeInstruction(
           jupInstruction.instructions.tokenLedgerInstruction
         )
+        : null,
+      closePositionIx,
+      ...jupiterIxs,
+      repaySolIx,
+      computeBudgetMicroLamports ? computeFeeIx : undefined,
+    ].filter((i) => !!i);
+
+    const messageV01 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: setUpInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx = new VersionedTransaction(messageV01);
+
+    const messageV02 = new TransactionMessage({
+      payerKey: lavarageProgram.provider.publicKey!,
+      recentBlockhash: blockhash,
+      instructions: allInstructions,
+    }).compileToV0Message(addressLookupTableAccounts);
+
+    const tx2 = new VersionedTransaction(messageV02);
+
+    return [tx, tx2];
+  }
+
+  const allInstructions = [
+    jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
+    createAssociatedTokenAccountInstruction,
+    jupInstruction.instructions?.tokenLedgerInstruction
+      ? deserializeInstruction(
+        jupInstruction.instructions.tokenLedgerInstruction
+      )
       : null,
-    toTokenAccount.instruction!,
     closePositionIx,
     ...jupiterIxs,
     repaySolIx,
@@ -2041,13 +2184,13 @@ export const getDelegateAccounts = async (
   const delegateAccounts = await lavarageProgram.account.delegate.all(
     userPubKey
       ? [
-          {
-            memcmp: {
-              offset: 104,
-              bytes: userPubKey.toBase58(),
-            },
+        {
+          memcmp: {
+            offset: 104,
+            bytes: userPubKey.toBase58(),
           },
-        ]
+        },
+      ]
       : undefined
   );
   return delegateAccounts.map((d) => ({

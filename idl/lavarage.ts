@@ -239,7 +239,7 @@ export type Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -310,7 +310,7 @@ export type Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -408,6 +408,18 @@ export type Lavarage = {
         {
           "name": "userPays",
           "type": "u64"
+        },
+        {
+          "name": "discountBps",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "referralBps",
+          "type": {
+            "option": "u64"
+          }
         }
       ]
     },
@@ -954,6 +966,57 @@ export type Lavarage = {
         {
           "name": "seed2",
           "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "rescueStuckTokens",
+      "accounts": [
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "positionTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "traderTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "positionMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
@@ -1714,7 +1777,7 @@ export const IDL: Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -1785,7 +1848,7 @@ export const IDL: Lavarage = {
         },
         {
           "name": "toTokenAccount",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -1883,6 +1946,18 @@ export const IDL: Lavarage = {
         {
           "name": "userPays",
           "type": "u64"
+        },
+        {
+          "name": "discountBps",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "referralBps",
+          "type": {
+            "option": "u64"
+          }
         }
       ]
     },
@@ -2429,6 +2504,57 @@ export const IDL: Lavarage = {
         {
           "name": "seed2",
           "type": "publicKey"
+        }
+      ]
+    },
+    {
+      "name": "rescueStuckTokens",
+      "accounts": [
+        {
+          "name": "position",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "positionTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "traderTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "positionMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },

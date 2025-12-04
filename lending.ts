@@ -662,7 +662,6 @@ export async function createOffer(
       ...createNodeWalletInstruction,
       instruction,
       updateMaxExposureInstruction,
-      transferInstruction,
       params.maxBorrow ? updateMaxBorrowInstruction : undefined,
       computeFeeIx,
     ].filter(Boolean) as TransactionInstruction[],
