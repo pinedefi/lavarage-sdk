@@ -17,10 +17,30 @@ import {
 
 /**
  * Creates an unsigned transaction to open a trading position on EVM chain
+ * @group EVM
+ * @category Trading
  * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @param params - Trading parameters
  * @returns Unsigned transaction object
+ * 
+ * @example
+ * ```typescript
+ * const tx = await openPositionEvm(
+ *   provider,
+ *   "0x123...", // contract address
+ *   {
+ *     buyingCode: "0x...", // 1inch swap data
+ *     tokenCollateral: "0x456...", // USDC address
+ *     borrowAmount: ethers.parseEther("2"),
+ *     tokenHolder: "0x789...",
+ *     inchRouter: "0xabc...",
+ *     buyerContribution: ethers.parseEther("1") // 1 ETH margin
+ *   }
+ * );
+ * 
+ * const receipt = await signer.sendTransaction(tx);
+ * ```
  */
 export const openPositionEvm = async (
   provider: Provider,
@@ -77,10 +97,29 @@ export const openPositionEvm = async (
 
 /**
  * Creates an unsigned transaction to close a trading position on EVM chain
+ * @group EVM
+ * @category Trading
  * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @param params - Trading parameters
  * @returns Unsigned transaction object
+ * 
+ * @example
+ * ```typescript
+ * const tx = await closePositionEvm(
+ *   provider,
+ *   "0x123...", // contract address
+ *   {
+ *     loanId: 1,
+ *     sellingCode: "0x...", // 1inch swap data for selling
+ *     tokenHolder: "0x789...",
+ *     inchRouter: "0xabc...",
+ *     integratorFeeAddress: "0xdef..." // optional
+ *   }
+ * );
+ * 
+ * const receipt = await signer.sendTransaction(tx);
+ * ```
  */
 export const closePositionEvm = async (
   provider: Provider,
@@ -126,9 +165,25 @@ export const closePositionEvm = async (
 
 /**
  * Get all positions from active loans
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - TokenHolder contract address
  * @returns Array of active positions
+ * 
+ * @example
+ * ```typescript
+ * const positions = await getPositionsEvm(
+ *   provider,
+ *   "0x123..." // TokenHolder address
+ * );
+ * 
+ * console.log(`Found ${positions.length} active positions`);
+ * 
+ * positions.forEach(pos => {
+ *   console.log(`Loan #${pos.loanId}: ${pos.collateralAmount} collateral`);
+ * });
+ * ```
  */
 export async function getPositionsEvm(
   provider: Provider,
@@ -169,10 +224,27 @@ export async function getPositionsEvm(
 
 /**
  * Get closed positions from events
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @param fromBlock - Block to start searching from
  * @returns Array of Sell events representing closed positions
+ * 
+ * @example
+ * ```typescript
+ * const closedPositions = await getClosedPositionsEvm(
+ *   provider,
+ *   "0x123...", // BorrowerOps address
+ *   50000000 // optional: custom start block
+ * );
+ * 
+ * console.log(`Found ${closedPositions.length} closed positions`);
+ * 
+ * // Check profit/loss
+ * closedPositions.forEach(pos => {
+ *   console.log(`Loan #${pos.loanId}: ${pos.profit > 0 ? 'Profit' : 'Loss'}`);
+ * });
  */
 export async function getClosedPositionsEvm(
   provider: Provider,
@@ -219,10 +291,28 @@ export async function getClosedPositionsEvm(
 
 /**
  * Get liquidated positions from events
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @param fromBlock - Block to start searching from
  * @returns Array of Liquidation events representing liquidated positions
+ * @example
+ * ```typescript
+ * const liquidations = await getLiquidatedPositionsEvm(
+ *   provider,
+ *   "0x123...", // BorrowerOps address
+ *   50000000 // optional: custom start block
+ * );
+ * 
+ * console.log(`Found ${liquidations.length} liquidated positions`);
+ * 
+ * // Analyze liquidation data
+ * liquidations.forEach(liq => {
+ *   console.log(`Loan #${liq.loanId}: liquidated ${liq.closingPositionSize}`);
+ *   console.log(`Liquidator repaid: ${liq.liquidatorRepaidAmount}`);
+ * });
+ * ```
  */
 export async function getLiquidatedPositionsEvm(
   provider: Provider,
@@ -274,10 +364,26 @@ export async function getLiquidatedPositionsEvm(
 
 /**
  * Get a loan by its ID from TokenHolder contract
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param loanId - ID of the loan to retrieve
  * @returns Loan object
+ * 
+ * @example
+ * ```typescript
+ * const loan = await getLoanEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   42 // loan ID
+ * );
+ * 
+ * console.log(`Loan #${loan.id}`);
+ * console.log(`Borrower: ${loan.borrower}`);
+ * console.log(`Amount: ${loan.amount}`);
+ * console.log(`Collateral: ${loan.collateralAmount}`);
+ * ```
  */
 export async function getLoanEvm(
   provider: Provider,
@@ -294,10 +400,27 @@ export async function getLoanEvm(
 
 /**
  * Get all active loans for a user
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param userAddress - Address of the user to get loans for
  * @returns Array of loans belonging to the user
+ * 
+ * @example
+ * ```typescript
+ * const userLoans = await getUserLoansEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   "0x456..." // user address
+ * );
+ * 
+ * console.log(`User has ${userLoans.length} active loans`);
+ * 
+ * userLoans.forEach(loan => {
+ *   console.log(`Loan #${loan.id}: ${loan.amount} borrowed`);
+ * });
+ * ```
  */
 export async function getUserLoansEvm(
   provider: Provider,
@@ -325,10 +448,25 @@ export async function getUserLoansEvm(
 
 /**
  * Get collateral information for a specific token
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param collateralAddress - Address of the collateral token
  * @returns Collateral object
+ * 
+ * @example
+ * ```typescript
+ * const collateralInfo = await getCollateralInfoEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   "0x456..." // USDC or other collateral token address
+ * );
+ * 
+ * console.log(`Collateral: ${collateralInfo.symbol}`);
+ * console.log(`Max LTV: ${collateralInfo.maxLTV}`);
+ * console.log(`Liquidation threshold: ${collateralInfo.liquidationThreshold}`);
+ * ```
  */
 export async function getCollateralInfoEvm(
   provider: Provider,
@@ -345,10 +483,27 @@ export async function getCollateralInfoEvm(
 
 /**
  * Get all available collateral information
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param collateralAddresses - Array of collateral token addresses
  * @returns Array of active collaterals
+ * 
+ * @example
+ * ```typescript
+ * const collaterals = await getOffersEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   ["0x456...", "0x789...", "0xabc..."] // token addresses to check
+ * );
+ * 
+ * console.log(`Found ${collaterals.length} available collaterals`);
+ * 
+ * collaterals.forEach(({ address, collateral }) => {
+ *   console.log(`Token ${address}: LTV ${collateral.maxLTV}%`);
+ * });
+ * ```
  */
 export async function getOffersEvm(
   provider: Provider,
@@ -377,9 +532,23 @@ export async function getOffersEvm(
 
 /**
  * Get the opening fee percentage
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @returns Opening fee as a BigNumber
+ * 
+ * @example
+ * ```typescript
+ * const openingFee = await getOpeningFeeEvm(
+ *   provider,
+ *   "0x123..." // BorrowerOps address
+ * );
+ * 
+ * // Convert to percentage (assuming 18 decimals)
+ * const feePercent = Number(openingFee) / 1e16; // e.g., 0.5%
+ * console.log(`Opening fee: ${feePercent}%`);
+ * ```
  */
 export async function getOpeningFeeEvm(
   provider: Provider,
@@ -395,9 +564,23 @@ export async function getOpeningFeeEvm(
 
 /**
  * Get the profit fee percentage
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param borrowerOpsContractAddress - BorrowerOperations contract address
  * @returns Profit fee as a BigNumber
+ * 
+ * @example
+ * ```typescript
+ * const profitFee = await getProfitFeeEvm(
+ *   provider,
+ *   "0x123..." // BorrowerOps address
+ * );
+ * 
+ * // Convert to percentage (assuming 18 decimals)
+ * const feePercent = Number(profitFee) / 1e16; // e.g., 1%
+ * console.log(`Profit fee: ${feePercent}%`);
+ * ```
  */
 export async function getProfitFeeEvm(
   provider: Provider,
@@ -413,9 +596,23 @@ export async function getProfitFeeEvm(
 
 /**
  * Get the token balance of the token holder contract
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @returns Token balance as a BigNumber
+ * 
+ * @example
+ * ```typescript
+ * const balance = await getTokenBalanceEvm(
+ *   provider,
+ *   "0x123..." // TokenHolder address
+ * );
+ * 
+ * // Format for display (assuming 18 decimals)
+ * const formatted = ethers.formatEther(balance);
+ * console.log(`Contract balance: ${formatted} ETH`);
+ * ```
  */
 export async function getTokenBalanceEvm(
   provider: Provider,
@@ -431,9 +628,26 @@ export async function getTokenBalanceEvm(
 
 /**
  * Get the active loan count
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @returns Number of active loans
+ * 
+ * @example
+ * ```typescript
+ * const loanCount = await getActiveLoanCountEvm(
+ *   provider,
+ *   "0x123..." // TokenHolder address
+ * );
+ * 
+ * console.log(`Total active loans: ${loanCount}`);
+ * 
+ * // Use for statistics or monitoring
+ * if (loanCount > 1000n) {
+ *   console.log("High activity detected");
+ * }
+ * ```
  */
 export async function getActiveLoanCountEvm(
   provider: Provider,
@@ -449,11 +663,30 @@ export async function getActiveLoanCountEvm(
 
 /**
  * Get a batch of active loans
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param startIndex - Starting index in the activeLoanIds array
  * @param batchSize - Number of loans to retrieve
  * @returns Array of active loans
+ * 
+ * @example
+ * ```typescript
+ * const loans = await getActiveLoansBatchEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   0, // start from first loan
+ *   100 // get 100 loans
+ * );
+ * 
+ * console.log(`Retrieved ${loans.length} loans`);
+ * 
+ * // Process batch
+ * loans.forEach(loan => {
+ *   console.log(`Loan #${loan.id}: ${loan.borrower}`);
+ * });
+ * ```
  */
 export async function getActiveLoansBatchEvm(
   provider: Provider,
@@ -471,10 +704,27 @@ export async function getActiveLoansBatchEvm(
 
 /**
  * Get all loans for a specific borrower
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param borrowerAddress - Address of the borrower
  * @returns Array of loans belonging to the borrower
+ * 
+ * @example
+ * ```typescript
+ * const userLoans = await getLoansByBorrowerEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   "0x456..." // borrower address
+ * );
+ * 
+ * console.log(`Borrower has ${userLoans.length} loans`);
+ * 
+ * userLoans.forEach(loan => {
+ *   console.log(`Loan #${loan.id}: ${loan.collateralAmount} collateral`);
+ * });
+ * ```
  */
 export async function getLoansByBorrowerEvm(
   provider: Provider,
@@ -491,10 +741,29 @@ export async function getLoansByBorrowerEvm(
 
 /**
  * Get current exposure for a collateral
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param collateralAddress - Address of the collateral token
  * @returns Current exposure as a BigNumber
+ * 
+ * @example
+ * ```typescript
+ * const exposure = await getCollateralExposureEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   "0x456..." // collateral token address
+ * );
+ * 
+ * console.log(`Current exposure: ${ethers.formatEther(exposure)}`);
+ * 
+ * // Check if near limit
+ * const maxExposure = 1000000n;
+ * if (exposure > maxExposure * 90n / 100n) {
+ *   console.log("Warning: 90% exposure reached");
+ * }
+ * ```
  */
 export async function getCollateralExposureEvm(
   provider: Provider,
@@ -511,10 +780,29 @@ export async function getCollateralExposureEvm(
 
 /**
  * Get available exposure for a collateral
+ * @group EVM
+ * @category Queries
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param collateralAddress - Address of the collateral token
  * @returns Available exposure as a BigNumber
+ * 
+ * @example
+ * ```typescript
+ * const available = await getAvailableExposureEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   "0x456..." // collateral token address
+ * );
+ * 
+ * console.log(`Available exposure: ${ethers.formatEther(available)}`);
+ * 
+ * // Check if can open new position
+ * const newPositionSize = ethers.parseEther("10");
+ * if (available >= newPositionSize) {
+ *   console.log("Sufficient exposure available");
+ * }
+ * ```
  */
 export async function getAvailableExposureEvm(
   provider: Provider,
@@ -531,6 +819,8 @@ export async function getAvailableExposureEvm(
 
 /**
  * Update max lend per token for multiple collaterals in batch
+ * @group EVM
+ * @category Operations
  * @param provider - Ethers provider
  * @param tokenHolderContractAddress - Address of the TokenHolder contract
  * @param collateralAddresses - Array of collateral token addresses
@@ -538,6 +828,24 @@ export async function getAvailableExposureEvm(
  * @param gasLimit - Optional gas limit
  * @param gasPrice - Optional gas price
  * @returns Unsigned transaction object
+ * 
+ * @example
+ * ```typescript
+ * const tx = await updateMaxLendPerTokenBatchEvm(
+ *   provider,
+ *   "0x123...", // TokenHolder address
+ *   {
+ *     collateralAddresses: ["0x456...", "0x789..."],
+ *     newMaxLendPerTokens: [
+ *       ethers.parseEther("1000"),
+ *       ethers.parseEther("500")
+ *     ]
+ *   }
+ * );
+ * 
+ * const receipt = await signer.sendTransaction(tx);
+ * console.log("Max lend limits updated");
+ * ```
  */
 export const updateMaxLendPerTokenBatchEvm = async (
   provider: Provider,

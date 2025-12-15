@@ -1,0 +1,23 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": ["./index.ts"],
+    "out": "docs",
+    "name": "Lavarage SDK Documentation",
+    "readme": "docs-readme.md",
+    "includeVersion": true,
+    "excludePrivate": true,
+    "excludeProtected": false,
+    "excludeInternal": true,
+    "navigationLinks": {
+        "NPM": "https://www.npmjs.com/package/@lavarage/sdk"
+    },
+    "categorizeByGroup": true,
+    "defaultCategory": "Other",
+    "categoryOrder": [
+        "Traders",
+        "Lending",
+        "Solana",
+        "EVM",
+        "*"
+    ]
+}

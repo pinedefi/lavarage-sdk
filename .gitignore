@@ -1,2 +1,19 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+.DS_Store?
+._*
+
+# Environment
+.env
+.env.local
