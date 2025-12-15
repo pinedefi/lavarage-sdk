@@ -15,8 +15,10 @@
 import { BN, Program, ProgramAccount } from "@coral-xyz/anchor";
 import { Lavarage } from "./idl/lavarage";
 import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
+import { UserVault, IDL as userVaultIDL } from "./idl/referralVault";
 import bs58 from "bs58";
 import {
+  AccountInfo,
   AddressLookupTableAccount,
   ComputeBudgetProgram,
   Keypair,
@@ -43,6 +45,18 @@ import {
 
 export * from "./evm";
 export * as lending from "./lending";
+
+
+type OptionalRPCResults = {
+  addressLookupTableAccounts?: AccountInfo<Buffer>[];
+  latestBlockhash?: string;
+  tokenAccountConfirmCreatedAddresses?: PublicKey[];
+  quoteMintAccountInfo?: AccountInfo<Buffer>;
+}
+const REFFERAL_VAULT_PROGRAM_ID = new PublicKey("FFe8xWs9iBdWB6vsxg8yBLirZHsbACFNbXqAM4K3fPPB");
+
+
+
 /**
  * Derives a Program Derived Address (PDA) for the given seed(s) and program ID
  * 
@@ -59,7 +73,6 @@ export * as lending from "./lending";
  * const pda = getPda(seed, programId);
  * ```
  */
-
 export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
   const seedsBuffer = Array.isArray(seed) ? seed : [seed];
 
@@ -112,6 +125,7 @@ export function getPositionAccountPDA(
  * @param ownerPublicKey - The owner of the token account
  * @param tokenAddress - The mint address of the token
  * @param tokenProgram - Optional token program ID (defaults to TOKEN_PROGRAM_ID)
+ * @param confirmCreatedAddresses - Optional array of addresses to confirm creation of token accounts
  * @returns Object containing the account address and creation instruction
  */
 
@@ -119,7 +133,8 @@ async function getTokenAccountOrCreateIfNotExists(
   lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
   ownerPublicKey: PublicKey,
   tokenAddress: PublicKey,
-  tokenProgram?: PublicKey
+  tokenProgram?: PublicKey,
+  confirmCreatedAddresses?: PublicKey[]
 ) {
   const associatedTokenAddress = getAssociatedTokenAddressSync(
     tokenAddress,
@@ -128,6 +143,15 @@ async function getTokenAccountOrCreateIfNotExists(
     tokenProgram,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
+
+  if (confirmCreatedAddresses?.includes(associatedTokenAddress)) {
+    return {
+      account: {
+        address: associatedTokenAddress,
+      },
+      instruction: undefined,
+    };
+  }
 
   const instruction = createAssociatedTokenAccountIdempotentInstruction(
     lavarageProgram.provider.publicKey!,
@@ -384,6 +408,441 @@ export const getAllPositions = (
   return lavarageProgram.account.position.all([{ dataSize: 178 }]);
 };
 
+export const borrowV1 = async (
+  lavarageProgram: Program<Lavarage>,
+  offer: ProgramAccount<{
+    nodeWallet: PublicKey;
+    interestRate: number;
+    collateralType: PublicKey;
+  }>,
+  marginSOL: BN,
+  leverage: number,
+  randomSeed: Keypair,
+  tokenProgram: PublicKey,
+  partnerFeeRecipient?: PublicKey,
+  partnerFeeMarkup?: number,
+  computeBudgetMicroLamports?: number,
+  discountBps?: number,
+  referralBps?: number,
+  referralVaultProgram?: Program<UserVault>,
+) => {
+  let partnerFeeMarkupAsPkey;
+  if (partnerFeeMarkup) {
+    const feeBuffer = Buffer.alloc(8);
+    feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
+    const feeBuffer32 = Buffer.alloc(32);
+    feeBuffer32.set(feeBuffer, 0);
+    partnerFeeMarkupAsPkey = new PublicKey(feeBuffer32);
+  }
+  // assuming all token accounts are created prior
+  const positionAccount = getPositionAccountPDA(
+    lavarageProgram,
+    offer,
+    randomSeed.publicKey
+  );
+
+  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    lavarageProgram.provider.publicKey!,
+    offer.account.collateralType,
+    tokenProgram
+  );
+
+  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    positionAccount,
+    offer.account.collateralType,
+    tokenProgram
+  );
+
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
+  const useReferral = discountBps !== undefined && referralBps !== undefined;
+
+  // Check if partner fee recipient vault needs to be initialized via referralVaultProgram
+  let partnerFeeRecipientCreateIx: TransactionInstruction | undefined;
+  let userVaultPda: PublicKey | undefined;
+  if (partnerFeeRecipient && referralBps !== undefined && referralVaultProgram) {
+    [userVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_vault"), new PublicKey(partnerFeeRecipient).toBuffer()],
+      referralVaultProgram.programId
+    );
+    const vaultAccountInfo = await lavarageProgram.provider.connection.getAccountInfo(userVaultPda);
+    if (!vaultAccountInfo) {
+      // Initialize the vault using referralVaultProgram
+      partnerFeeRecipientCreateIx = await referralVaultProgram.methods
+        .initializeVault()
+        .accountsStrict({
+          userVault: userVaultPda,
+          user: partnerFeeRecipient!,
+          funder: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+    }
+  }
+
+  const tradingOpenBorrowInstruction = useReferral
+    ? await lavarageProgram.methods
+        .tradingOpenBorrowWithReferral(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL,
+          new BN(discountBps),
+          new BN(referralBps)
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+            ? [
+              {
+                pubkey: userVaultPda,
+                isSigner: false,
+                isWritable: true,
+              }
+            ]
+            : []
+        )
+        .instruction()
+    : await lavarageProgram.methods
+        .tradingOpenBorrow(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey
+            ? [
+              {
+                pubkey: partnerFeeRecipient,
+                isSigner: false,
+                isWritable: true,
+              },
+              {
+                pubkey: partnerFeeMarkupAsPkey,
+                isSigner: false,
+                isWritable: false,
+              },
+            ]
+            : []
+        )
+        .instruction();
+
+  const openAddCollateralInstruction = await lavarageProgram.methods
+    .tradingOpenAddCollateral(offer.account.interestRate)
+    .accountsStrict({
+      tradingPool: offer.publicKey,
+      trader: lavarageProgram.provider.publicKey!,
+      mint: offer.account.collateralType,
+      toTokenAccount: toTokenAccount.account!.address,
+      systemProgram: SystemProgram.programId,
+      positionAccount,
+      randomAccountAsId: randomSeed.publicKey.toBase58(),
+    })
+    .instruction();
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: computeBudgetMicroLamports ?? 100000,
+  });
+
+  const allInstructions = [
+    fromTokenAccount.instruction!,
+    toTokenAccount.instruction!,
+    partnerFeeRecipientCreateIx,
+    tradingOpenBorrowInstruction!,
+    openAddCollateralInstruction!,
+    computeBudgetMicroLamports ? computeFeeIx : undefined,
+  ].filter(Boolean) as TransactionInstruction[];
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: allInstructions,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(messageV0);
+
+  return tx;
+};
+
+export const borrowV2 = async (
+  lavarageProgram: Program<LavarageV2>,
+  offer: ProgramAccount<{
+    nodeWallet: PublicKey;
+    interestRate: number;
+    collateralType: PublicKey;
+  }>,
+  marginSOL: BN,
+  leverage: number,
+  randomSeed: Keypair,
+  quoteToken: PublicKey,
+  tokenProgram: PublicKey,
+  partnerFeeRecipient?: PublicKey,
+  partnerFeeMarkup?: number,
+  computeBudgetMicroLamports?: number,
+  discountBps?: number,
+  referralBps?: number,
+  referralVaultProgram?: Program<UserVault>,
+) => {
+  let partnerFeeMarkupAsPkey;
+  if (partnerFeeMarkup) {
+    const feeBuffer = Buffer.alloc(8);
+    feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
+    const feeBuffer32 = Buffer.alloc(32);
+    feeBuffer32.set(feeBuffer, 0);
+    partnerFeeMarkupAsPkey = new PublicKey(feeBuffer32);
+  }
+  // assuming all token accounts are created prior
+  const positionAccount = getPositionAccountPDA(
+    lavarageProgram,
+    offer,
+    randomSeed.publicKey
+  );
+
+  const quoteMintAccount =
+    await lavarageProgram.provider.connection.getAccountInfo(quoteToken);
+  const quoteTokenProgram = quoteMintAccount?.owner;
+
+  const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    lavarageProgram.provider.publicKey!,
+    offer.account.collateralType,
+    tokenProgram
+  );
+
+  const toTokenAccount = await getTokenAccountOrCreateIfNotExists(
+    lavarageProgram,
+    positionAccount,
+    offer.account.collateralType,
+    tokenProgram
+  );
+
+  const { blockhash } =
+    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+
+  const useReferral = discountBps !== undefined && referralBps !== undefined;
+
+  // Check if partner fee recipient vault and token account need to be created
+  let partnerFeeRecipientVaultCreateIx: TransactionInstruction | undefined;
+  let partnerFeeRecipientTokenAccountCreateIx: TransactionInstruction | undefined;
+  let userVaultPda: PublicKey | undefined;
+  
+  if (partnerFeeRecipient && partnerFeeMarkupAsPkey && referralVaultProgram) {
+    // Derive the userVault PDA
+    [userVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_vault"), new PublicKey(partnerFeeRecipient).toBuffer()],
+      referralVaultProgram.programId
+    );
+    
+    // Get the vault's associated token account
+    const vaultTokenAccount = getAssociatedTokenAddressSync(
+      quoteToken,
+      userVaultPda,
+      true, // allowOwnerOffCurve for PDA
+      quoteTokenProgram
+    );
+    
+    // Check both accounts at the same time
+    const [vaultAccountInfo, vaultTokenAccountInfo] = await lavarageProgram.provider.connection.getMultipleAccountsInfo([
+      userVaultPda,
+      vaultTokenAccount
+    ]);
+    
+    // Create vault if it doesn't exist
+    if (!vaultAccountInfo) {
+      partnerFeeRecipientVaultCreateIx = await referralVaultProgram.methods
+        .initializeVault()
+        .accountsStrict({
+          userVault: userVaultPda,
+          user: partnerFeeRecipient!,
+          funder: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+    }
+    
+    // Create token account if it doesn't exist
+    if (!vaultTokenAccountInfo) {
+      partnerFeeRecipientTokenAccountCreateIx = createAssociatedTokenAccountIdempotentInstruction(
+        lavarageProgram.provider.publicKey!,
+        vaultTokenAccount,
+        userVaultPda,
+        quoteToken,
+        quoteTokenProgram,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+    }
+  }
+
+  const tradingOpenBorrowInstruction = useReferral
+    ? await lavarageProgram.methods
+        .tradingOpenBorrowWithReferral(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL,
+          new BN(discountBps),
+          new BN(referralBps)
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+            true,
+            quoteTokenProgram
+          ),
+          toTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            lavarageProgram.provider.publicKey!,
+            true,
+            quoteTokenProgram
+          ),
+          tokenProgram: quoteTokenProgram!,
+          fromTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            offer.account.nodeWallet,
+            true,
+            quoteTokenProgram
+          ),
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+            ? [
+              {
+                pubkey: getAssociatedTokenAddressSync(
+                  quoteToken,
+                  userVaultPda,
+                  true, // allowOwnerOffCurve for PDA
+                  quoteTokenProgram
+                ),
+                isSigner: false,
+                isWritable: true,
+              }
+            ]
+            : []
+        )
+        .instruction()
+    : await lavarageProgram.methods
+        .tradingOpenBorrow(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+            true,
+            quoteTokenProgram
+          ),
+          toTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            lavarageProgram.provider.publicKey!,
+            true,
+            quoteTokenProgram
+          ),
+          tokenProgram: quoteTokenProgram!,
+          fromTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            offer.account.nodeWallet,
+            true,
+            quoteTokenProgram
+          ),
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+            ? [
+              {
+                pubkey: getAssociatedTokenAddressSync(
+                  quoteToken,
+                  userVaultPda,
+                  true, // allowOwnerOffCurve for PDA
+                  quoteTokenProgram
+                ),
+                isSigner: false,
+                isWritable: true,
+              },
+              {
+                pubkey: partnerFeeMarkupAsPkey,
+                isSigner: false,
+                isWritable: false,
+              },
+            ]
+            : []
+        )
+        .instruction();
+
+  const openAddCollateralInstruction = await lavarageProgram.methods
+    .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
+    .accountsStrict({
+      tradingPool: offer.publicKey,
+      trader: lavarageProgram.provider.publicKey!,
+      mint: offer.account.collateralType,
+      toTokenAccount: toTokenAccount.account!.address,
+      systemProgram: SystemProgram.programId,
+      positionAccount,
+      randomAccountAsId: randomSeed.publicKey.toBase58(),
+    })
+    .instruction();
+
+  const computeFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: computeBudgetMicroLamports ?? 100000,
+  });
+
+  const allInstructions = [
+    fromTokenAccount.instruction!,
+    toTokenAccount.instruction!,
+    partnerFeeRecipientVaultCreateIx,
+    partnerFeeRecipientTokenAccountCreateIx,
+    tradingOpenBorrowInstruction!,
+    openAddCollateralInstruction!,
+    computeBudgetMicroLamports ? computeFeeIx : undefined,
+  ].filter(Boolean) as TransactionInstruction[];
+
+  const messageV0 = new TransactionMessage({
+    payerKey: lavarageProgram.provider.publicKey!,
+    recentBlockhash: blockhash,
+    instructions: allInstructions,
+  }).compileToV0Message();
+
+  const tx = new VersionedTransaction(messageV0);
+
+  return tx;
+};
+
 /**
  * Opens a leveraged trading position on Lavarage V1
  * 
@@ -458,8 +917,12 @@ export const openTradeV1 = async (
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
   splitTransactions?: boolean,
+  discountBps?: number,
+  referralBps?: number,
+  optionalRPCResults?: OptionalRPCResults,
 ) => {
   let partnerFeeMarkupAsPkey;
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
     feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
@@ -478,21 +941,24 @@ export const openTradeV1 = async (
     lavarageProgram,
     lavarageProgram.provider.publicKey!,
     offer.account.collateralType,
-    tokenProgram
+    tokenProgram,
+    optionalRPCResults?.tokenAccountConfirmCreatedAddresses
   );
 
   const toTokenAccount = await getTokenAccountOrCreateIfNotExists(
     lavarageProgram,
     positionAccount,
     offer.account.collateralType,
-    tokenProgram
+    tokenProgram,
+    optionalRPCResults?.tokenAccountConfirmCreatedAddresses
   );
 
   const platformFeeRecipientAccount = platformFeeRecipient ? await getTokenAccountOrCreateIfNotExists(
     lavarageProgram,
     platformFeeRecipient,
     offer.account.collateralType,
-    tokenProgram
+    tokenProgram,
+    optionalRPCResults?.tokenAccountConfirmCreatedAddresses
   ) : undefined;
 
   const tokenAccountCreationTx = new Transaction();
@@ -533,7 +999,7 @@ export const openTradeV1 = async (
   const getAddressLookupTableAccounts = async (
     keys: string[]
   ): Promise<AddressLookupTableAccount[]> => {
-    const addressLookupTableAccountInfos =
+    const addressLookupTableAccountInfos = optionalRPCResults?.addressLookupTableAccounts ??
       await lavarageProgram.provider.connection.getMultipleAccountsInfo(
         keys.map((key) => new PublicKey(key))
       );
@@ -563,42 +1029,98 @@ export const openTradeV1 = async (
     ]))
   );
 
-  const { blockhash } =
-    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+  const blockhash =
+    optionalRPCResults?.latestBlockhash ?? (await lavarageProgram.provider.connection.getLatestBlockhash("finalized")).blockhash;
 
-  const tradingOpenBorrowInstruction = await lavarageProgram.methods
-    .tradingOpenBorrow(
-      new BN((marginSOL.toNumber() * leverage).toFixed(0)),
-      marginSOL
-    )
-    .accountsStrict({
-      nodeWallet: offer.account.nodeWallet,
-      instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
-      tradingPool: offer.publicKey,
-      positionAccount,
-      trader: lavarageProgram.provider.publicKey!,
-      systemProgram: SystemProgram.programId,
-      clock: SYSVAR_CLOCK_PUBKEY,
-      randomAccountAsId: randomSeed.publicKey.toBase58(),
-      feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
-    })
-    .remainingAccounts(
-      partnerFeeRecipient && partnerFeeMarkupAsPkey
-        ? [
-          {
-            pubkey: partnerFeeRecipient,
-            isSigner: false,
-            isWritable: true,
-          },
-          {
-            pubkey: partnerFeeMarkupAsPkey,
-            isSigner: false,
-            isWritable: false,
-          },
-        ]
-        : []
-    )
-    .instruction();
+  const useReferral = discountBps !== undefined && referralBps !== undefined;
+
+  // Check if partner fee recipient vault needs to be initialized via referralVaultProgram
+  let partnerFeeRecipientCreateIx: TransactionInstruction | undefined;
+  let userVaultPda: PublicKey | undefined;
+  if (partnerFeeRecipient && referralBps !== undefined && referralVaultProgram) {
+    [userVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_vault"), new PublicKey(partnerFeeRecipient).toBuffer()],
+      referralVaultProgram.programId
+    );
+    const vaultAccountInfo = await lavarageProgram.provider.connection.getAccountInfo(userVaultPda);
+    if (!vaultAccountInfo) {
+      // Initialize the vault using referralVaultProgram
+      partnerFeeRecipientCreateIx = await referralVaultProgram.methods
+        .initializeVault()
+        .accountsStrict({
+          userVault: userVaultPda,
+          user: partnerFeeRecipient!,
+          funder: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+    }
+  }
+
+  const tradingOpenBorrowInstruction = useReferral
+    ? await lavarageProgram.methods
+        .tradingOpenBorrowWithReferral(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL,
+          new BN(discountBps),
+          new BN(referralBps)
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+            ? [
+              {
+                pubkey: userVaultPda,
+                isSigner: false,
+                isWritable: true,
+              }
+            ]
+            : []
+        )
+        .instruction()
+    : await lavarageProgram.methods
+        .tradingOpenBorrow(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey
+            ? [
+              {
+                pubkey: partnerFeeRecipient,
+                isSigner: false,
+                isWritable: true,
+              },
+              {
+                pubkey: partnerFeeMarkupAsPkey,
+                isSigner: false,
+                isWritable: false,
+              },
+            ]
+            : []
+        )
+        .instruction();
 
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate)
@@ -626,8 +1148,9 @@ export const openTradeV1 = async (
     const setUpInstructions = [
       fromTokenAccount.instruction!,
       toTokenAccount.instruction!,
+      partnerFeeRecipientCreateIx,
       ...setupInstructions.map(deserializeInstruction),
-    ]
+    ].filter(Boolean) as TransactionInstruction[];
 
     const allInstructions = [
       tradingOpenBorrowInstruction!,
@@ -658,6 +1181,7 @@ export const openTradeV1 = async (
   const allInstructions = [
     fromTokenAccount.instruction!,
     toTokenAccount.instruction!,
+    partnerFeeRecipientCreateIx,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
     openAddCollateralInstruction!,
@@ -755,8 +1279,13 @@ export const openTradeV2 = async (
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
   splitTransactions?: boolean,
+  discountBps?: number,
+  referralBps?: number,
+  optionalRPCResults?: OptionalRPCResults,
 ) => {
   let partnerFeeMarkupAsPkey;
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
+  
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
     feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
@@ -771,7 +1300,7 @@ export const openTradeV2 = async (
     randomSeed.publicKey
   );
 
-  const quoteMintAccount =
+  const quoteMintAccount = optionalRPCResults?.quoteMintAccountInfo ??
     await lavarageProgram.provider.connection.getAccountInfo(quoteToken);
   const quoteTokenProgram = quoteMintAccount?.owner;
 
@@ -779,21 +1308,24 @@ export const openTradeV2 = async (
     lavarageProgram,
     lavarageProgram.provider.publicKey!,
     offer.account.collateralType,
-    tokenProgram
+    tokenProgram,
+    optionalRPCResults?.tokenAccountConfirmCreatedAddresses
   );
 
   const toTokenAccount = await getTokenAccountOrCreateIfNotExists(
     lavarageProgram,
     positionAccount,
     offer.account.collateralType,
-    tokenProgram
+    tokenProgram,
+    optionalRPCResults?.tokenAccountConfirmCreatedAddresses
   );
 
   const platformFeeRecipientAccount = platformFeeRecipient ? await getTokenAccountOrCreateIfNotExists(
     lavarageProgram,
     platformFeeRecipient,
     offer.account.collateralType,
-    tokenProgram
+    tokenProgram,
+    optionalRPCResults?.tokenAccountConfirmCreatedAddresses
   ) : undefined;
 
   const tokenAccountCreationTx = new Transaction();
@@ -835,7 +1367,7 @@ export const openTradeV2 = async (
     keys: string[]
   ): Promise<AddressLookupTableAccount[]> => {
     const addressLookupTableAccountInfos =
-      await lavarageProgram.provider.connection.getMultipleAccountsInfo(
+      optionalRPCResults?.addressLookupTableAccounts ?? await lavarageProgram.provider.connection.getMultipleAccountsInfo(
         keys.map((key) => new PublicKey(key))
       );
 
@@ -868,62 +1400,170 @@ export const openTradeV2 = async (
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  const tradingOpenBorrowInstruction = await lavarageProgram.methods
-    .tradingOpenBorrow(
-      new BN((marginSOL.toNumber() * leverage).toFixed(0)),
-      marginSOL
-    )
-    .accountsStrict({
-      nodeWallet: offer.account.nodeWallet,
-      instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
-      tradingPool: offer.publicKey,
-      positionAccount,
-      trader: lavarageProgram.provider.publicKey!,
-      systemProgram: SystemProgram.programId,
-      clock: SYSVAR_CLOCK_PUBKEY,
-      randomAccountAsId: randomSeed.publicKey.toBase58(),
-      feeTokenAccount: getAssociatedTokenAddressSync(
-        quoteToken,
-        new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
-        true,
-        quoteTokenProgram
-      ),
-      toTokenAccount: getAssociatedTokenAddressSync(
-        quoteToken,
+  const useReferral = discountBps !== undefined && referralBps !== undefined;
+
+  // Check if partner fee recipient vault and token account need to be created
+  let partnerFeeRecipientVaultCreateIx: TransactionInstruction | undefined;
+  let partnerFeeRecipientTokenAccountCreateIx: TransactionInstruction | undefined;
+  let userVaultPda: PublicKey | undefined;
+  
+  if (partnerFeeRecipient && partnerFeeMarkupAsPkey && referralVaultProgram) {
+    // Derive the userVault PDA
+    [userVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_vault"), new PublicKey(partnerFeeRecipient).toBuffer()],
+      referralVaultProgram.programId
+    );
+    
+    // Get the vault's associated token account
+    const vaultTokenAccount = getAssociatedTokenAddressSync(
+      quoteToken,
+      userVaultPda,
+      true, // allowOwnerOffCurve for PDA
+      quoteTokenProgram
+    );
+    
+    // Check both accounts at the same time
+    const [vaultAccountInfo, vaultTokenAccountInfo] = await lavarageProgram.provider.connection.getMultipleAccountsInfo([
+      userVaultPda,
+      vaultTokenAccount
+    ]);
+    
+    // Create vault if it doesn't exist
+    if (!vaultAccountInfo) {
+      partnerFeeRecipientVaultCreateIx = await referralVaultProgram.methods
+        .initializeVault()
+        .accountsStrict({
+          userVault: userVaultPda,
+          user: partnerFeeRecipient!,
+          funder: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+    }
+    
+    // Create token account if it doesn't exist
+    if (!vaultTokenAccountInfo) {
+      partnerFeeRecipientTokenAccountCreateIx = createAssociatedTokenAccountIdempotentInstruction(
         lavarageProgram.provider.publicKey!,
-        true,
-        quoteTokenProgram
-      ),
-      tokenProgram: quoteTokenProgram!,
-      fromTokenAccount: getAssociatedTokenAddressSync(
+        vaultTokenAccount,
+        userVaultPda,
         quoteToken,
-        offer.account.nodeWallet,
-        true,
-        quoteTokenProgram
-      ),
-    })
-    .remainingAccounts(
-      partnerFeeRecipient && partnerFeeMarkupAsPkey
-        ? [
-          {
-            pubkey: getAssociatedTokenAddressSync(
-              quoteToken,
-              partnerFeeRecipient,
-              false,
-              quoteTokenProgram
-            ),
-            isSigner: false,
-            isWritable: true,
-          },
-          {
-            pubkey: partnerFeeMarkupAsPkey,
-            isSigner: false,
-            isWritable: false,
-          },
-        ]
-        : []
-    )
-    .instruction();
+        quoteTokenProgram,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+    }
+  }
+
+  const tradingOpenBorrowInstruction = useReferral
+    ? await lavarageProgram.methods
+        .tradingOpenBorrowWithReferral(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL,
+          new BN(discountBps),
+          new BN(referralBps)
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+            true,
+            quoteTokenProgram
+          ),
+          toTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            lavarageProgram.provider.publicKey!,
+            true,
+            quoteTokenProgram
+          ),
+          tokenProgram: quoteTokenProgram!,
+          fromTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            offer.account.nodeWallet,
+            true,
+            quoteTokenProgram
+          ),
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+            ? [
+              {
+                pubkey: getAssociatedTokenAddressSync(
+                  quoteToken,
+                  userVaultPda,
+                  true, // allowOwnerOffCurve for PDA
+                  quoteTokenProgram
+                ),
+                isSigner: false,
+                isWritable: true,
+              }
+            ]
+            : []
+        )
+        .instruction()
+    : await lavarageProgram.methods
+        .tradingOpenBorrow(
+          new BN((marginSOL.toNumber() * leverage).toFixed(0)),
+          marginSOL
+        )
+        .accountsStrict({
+          nodeWallet: offer.account.nodeWallet,
+          instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+          tradingPool: offer.publicKey,
+          positionAccount,
+          trader: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          randomAccountAsId: randomSeed.publicKey.toBase58(),
+          feeTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+            true,
+            quoteTokenProgram
+          ),
+          toTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            lavarageProgram.provider.publicKey!,
+            true,
+            quoteTokenProgram
+          ),
+          tokenProgram: quoteTokenProgram!,
+          fromTokenAccount: getAssociatedTokenAddressSync(
+            quoteToken,
+            offer.account.nodeWallet,
+            true,
+            quoteTokenProgram
+          ),
+        })
+        .remainingAccounts(
+          partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+            ? [
+              {
+                pubkey: getAssociatedTokenAddressSync(
+                  quoteToken,
+                  userVaultPda,
+                  true, // allowOwnerOffCurve for PDA
+                  quoteTokenProgram
+                ),
+                isSigner: false,
+                isWritable: true,
+              },
+              {
+                pubkey: partnerFeeMarkupAsPkey,
+                isSigner: false,
+                isWritable: false,
+              },
+            ]
+            : []
+        )
+        .instruction();
 
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
@@ -951,8 +1591,10 @@ export const openTradeV2 = async (
     const setUpInstructions = [
       fromTokenAccount.instruction!,
       toTokenAccount.instruction!,
+      partnerFeeRecipientVaultCreateIx,
+      partnerFeeRecipientTokenAccountCreateIx,
       ...setupInstructions.map(deserializeInstruction),
-    ]
+    ].filter(Boolean) as TransactionInstruction[];
 
     const allInstructions = [
       tradingOpenBorrowInstruction!,
@@ -983,6 +1625,8 @@ export const openTradeV2 = async (
   const allInstructions = [
     fromTokenAccount.instruction!,
     toTokenAccount.instruction!,
+    partnerFeeRecipientVaultCreateIx,
+    partnerFeeRecipientTokenAccountCreateIx,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
     openAddCollateralInstruction!,
