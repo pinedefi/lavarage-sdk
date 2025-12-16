@@ -1,6 +1,6 @@
 {
   "name": "@lavarage/sdk",
-  "version": "7.5.6",
+  "version": "7.5.9",
   "description": "Lavarage SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "tsup": "^8.2.4",
-    "typedoc": "^0.28.12"
+    "typedoc": "^0.28.15"
   },
   "publishConfig": {
     "access": "public"

@@ -864,6 +864,11 @@ export const borrowV2 = async (
  * @param partnerFeeRecipient - Optional wallet to receive partner fees
  * @param partnerFeeMarkup - Optional partner fee amount in basis points
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
+ * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
+ * @param discountBps - Optional discount basis points for the referral program
+ * @param referralBps - Optional referral basis points for the referral program
+ * @param optionalRPCResults - Optional RPC results to use for the transaction (speeds up the transaction building)
  * 
  * @returns A versioned transaction ready to be signed and sent
  * 
@@ -1223,6 +1228,11 @@ export const openTradeV1 = async (
  * @param partnerFeeRecipient - Optional wallet to receive partner fees
  * @param partnerFeeMarkup - Optional partner fee amount in basis points
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
+ * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
+ * @param discountBps - Optional discount basis points for the referral program
+ * @param referralBps - Optional referral basis points for the referral program
+ * @param optionalRPCResults - Optional RPC results to use for the transaction (speeds up the transaction building)
  * 
  * @returns A versioned transaction ready to be signed and sent
  * 
@@ -2079,6 +2089,10 @@ export const partialRepayV2 = async (
  * @param partnerFeeRecipient - Optional wallet to receive partner fees
  * @param partnerFeeMarkup - Optional partner fee amount in basis points
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+ * @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
+ * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
+ * @param discountBps - Optional discount basis points for the referral program
+ * @param referralBps - Optional referral basis points for the referral program
  * 
  * @returns Transaction to close the position
  * 
@@ -2128,8 +2142,12 @@ export const closeTradeV1 = async (
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
   splitTransactions?: boolean,
+  discountBps?: number,
+  referralBps?: number,
 ) => {
   let partnerFeeMarkupAsPkey;
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
+  
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
     feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
@@ -2216,6 +2234,31 @@ export const closeTradeV1 = async (
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
+  const useReferral = discountBps !== undefined && referralBps !== undefined;
+
+  // Check if partner fee recipient vault needs to be initialized via referralVaultProgram
+  let partnerFeeRecipientCreateIx: TransactionInstruction | undefined;
+  let userVaultPda: PublicKey | undefined;
+  if (partnerFeeRecipient && referralBps !== undefined && referralVaultProgram) {
+    [userVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_vault"), new PublicKey(partnerFeeRecipient).toBuffer()],
+      referralVaultProgram.programId
+    );
+    const vaultAccountInfo = await lavarageProgram.provider.connection.getAccountInfo(userVaultPda);
+    if (!vaultAccountInfo) {
+      // Initialize the vault using referralVaultProgram
+      partnerFeeRecipientCreateIx = await referralVaultProgram.methods
+        .initializeVault()
+        .accountsStrict({
+          userVault: userVaultPda,
+          user: partnerFeeRecipient!,
+          funder: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+    }
+  }
+
   const closePositionIx = await lavarageProgram.methods
     .tradingCloseBorrowCollateral()
     .accountsStrict({
@@ -2236,71 +2279,131 @@ export const closeTradeV1 = async (
   let repaySolIx: TransactionInstruction | null = null;
   let jupiterIxs: TransactionInstruction[] = [];
   if (jupInstruction.instructions == undefined) {
-    repaySolIx = await lavarageProgram.methods
-      .tradingCloseRepaySol(
-        new BN(jupInstruction.quoteResponse.outAmount),
-        new BN(9997)
-      )
-      .accountsStrict({
-        nodeWallet: pool.account.nodeWallet,
-        positionAccount: positionAccountPDA,
-        tradingPool: poolPubKey,
-        trader: lavarageProgram.provider.publicKey!,
-        systemProgram: SystemProgram.programId,
-        clock: SYSVAR_CLOCK_PUBKEY,
-        randomAccountAsId: position.account.seed,
-        feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
-      })
-      .remainingAccounts(
-        partnerFeeRecipient && partnerFeeMarkupAsPkey
-          ? [
-            {
-              pubkey: partnerFeeRecipient,
-              isSigner: false,
-              isWritable: true,
-            },
-            {
-              pubkey: partnerFeeMarkupAsPkey,
-              isSigner: false,
-              isWritable: false,
-            },
-          ]
-          : []
-      )
-      .instruction();
+    repaySolIx = useReferral
+      ? await lavarageProgram.methods
+          .tradingCloseRepaySolWithReferral(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9997),
+            new BN(discountBps),
+            new BN(referralBps)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+              ? [
+                {
+                  pubkey: userVaultPda,
+                  isSigner: false,
+                  isWritable: true,
+                }
+              ]
+              : []
+          )
+          .instruction()
+      : await lavarageProgram.methods
+          .tradingCloseRepaySol(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9997)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey
+              ? [
+                {
+                  pubkey: partnerFeeRecipient,
+                  isSigner: false,
+                  isWritable: true,
+                },
+                {
+                  pubkey: partnerFeeMarkupAsPkey,
+                  isSigner: false,
+                  isWritable: false,
+                },
+              ]
+              : []
+          )
+          .instruction();
   } else {
-    repaySolIx = await lavarageProgram.methods
-      .tradingCloseRepaySol(
-        new BN(jupInstruction.quoteResponse.outAmount),
-        new BN(9998)
-      )
-      .accountsStrict({
-        nodeWallet: pool.account.nodeWallet,
-        positionAccount: positionAccountPDA,
-        tradingPool: poolPubKey,
-        trader: lavarageProgram.provider.publicKey!,
-        systemProgram: SystemProgram.programId,
-        clock: SYSVAR_CLOCK_PUBKEY,
-        randomAccountAsId: position.account.seed,
-        feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
-      })
-      .remainingAccounts(
-        partnerFeeRecipient && partnerFeeMarkupAsPkey
-          ? [
-            {
-              pubkey: partnerFeeRecipient,
-              isSigner: false,
-              isWritable: true,
-            },
-            {
-              pubkey: partnerFeeMarkupAsPkey,
-              isSigner: false,
-              isWritable: false,
-            },
-          ]
-          : []
-      )
-      .instruction();
+    repaySolIx = useReferral
+      ? await lavarageProgram.methods
+          .tradingCloseRepaySolWithReferral(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9998),
+            new BN(discountBps),
+            new BN(referralBps)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+              ? [
+                {
+                  pubkey: userVaultPda,
+                  isSigner: false,
+                  isWritable: true,
+                }
+              ]
+              : []
+          )
+          .instruction()
+      : await lavarageProgram.methods
+          .tradingCloseRepaySol(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9998)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey
+              ? [
+                {
+                  pubkey: partnerFeeRecipient,
+                  isSigner: false,
+                  isWritable: true,
+                },
+                {
+                  pubkey: partnerFeeMarkupAsPkey,
+                  isSigner: false,
+                  isWritable: false,
+                },
+              ]
+              : []
+          )
+          .instruction();
 
     const {
       setupInstructions,
@@ -2339,6 +2442,7 @@ export const closeTradeV1 = async (
 
   if (splitTransactions) {
     const setUpInstructions = [
+      partnerFeeRecipientCreateIx,
       jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
       createAssociatedTokenAccountInstruction
     ].filter((i) => !!i);
@@ -2375,6 +2479,7 @@ export const closeTradeV1 = async (
   }
 
   const allInstructions = [
+    partnerFeeRecipientCreateIx,
     jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
     createAssociatedTokenAccountInstruction,
     jupInstruction.instructions?.tokenLedgerInstruction
@@ -2413,6 +2518,10 @@ export const closeTradeV1 = async (
  * @param partnerFeeRecipient - Optional wallet to receive partner fees
  * @param partnerFeeMarkup - Optional partner fee amount in basis points
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
+* @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
+ * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
+ * @param discountBps - Optional discount basis points for the referral program
+ * @param referralBps - Optional referral basis points for the referral program
  * 
  * @returns Transaction to close the position
  * 
@@ -2464,8 +2573,12 @@ export const closeTradeV2 = async (
   computeBudgetMicroLamports?: number,
   platformFeeRecipient?: PublicKey,
   splitTransactions?: boolean,
+  discountBps?: number,
+  referralBps?: number,
 ) => {
   let partnerFeeMarkupAsPkey;
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
+  
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
     feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
@@ -2556,6 +2669,60 @@ export const closeTradeV2 = async (
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
+  const useReferral = discountBps !== undefined && referralBps !== undefined;
+
+  // Check if partner fee recipient vault and token account need to be created
+  let partnerFeeRecipientVaultCreateIx: TransactionInstruction | undefined;
+  let partnerFeeRecipientTokenAccountCreateIx: TransactionInstruction | undefined;
+  let userVaultPda: PublicKey | undefined;
+  
+  if (partnerFeeRecipient && partnerFeeMarkupAsPkey && referralVaultProgram) {
+    // Derive the userVault PDA
+    [userVaultPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_vault"), new PublicKey(partnerFeeRecipient).toBuffer()],
+      referralVaultProgram.programId
+    );
+    
+    // Get the vault's associated token account
+    const vaultTokenAccount = getAssociatedTokenAddressSync(
+      quoteToken,
+      userVaultPda,
+      true, // allowOwnerOffCurve for PDA
+      quoteTokenProgram
+    );
+    
+    // Check both accounts at the same time
+    const [vaultAccountInfo, vaultTokenAccountInfo] = await lavarageProgram.provider.connection.getMultipleAccountsInfo([
+      userVaultPda,
+      vaultTokenAccount
+    ]);
+    
+    // Create vault if it doesn't exist
+    if (!vaultAccountInfo) {
+      partnerFeeRecipientVaultCreateIx = await referralVaultProgram.methods
+        .initializeVault()
+        .accountsStrict({
+          userVault: userVaultPda,
+          user: partnerFeeRecipient!,
+          funder: lavarageProgram.provider.publicKey!,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+    }
+    
+    // Create token account if it doesn't exist
+    if (!vaultTokenAccountInfo) {
+      partnerFeeRecipientTokenAccountCreateIx = createAssociatedTokenAccountIdempotentInstruction(
+        lavarageProgram.provider.publicKey!,
+        vaultTokenAccount,
+        userVaultPda,
+        quoteToken,
+        quoteTokenProgram,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+    }
+  }
+
   const closePositionIx = await lavarageProgram.methods
     .tradingCloseBorrowCollateral()
     .accountsStrict({
@@ -2576,119 +2743,227 @@ export const closeTradeV2 = async (
   let repaySolIx: TransactionInstruction | null = null;
   let jupiterIxs: TransactionInstruction[] = [];
   if (jupInstruction.instructions == undefined) {
-    repaySolIx = await lavarageProgram.methods
-      .tradingCloseRepaySol(
-        new BN(jupInstruction.quoteResponse.outAmount),
-        new BN(9997)
-      )
-      .accountsStrict({
-        nodeWallet: pool.account.nodeWallet,
-        positionAccount: positionAccountPDA,
-        tradingPool: poolPubKey,
-        trader: lavarageProgram.provider.publicKey!,
-        systemProgram: SystemProgram.programId,
-        clock: SYSVAR_CLOCK_PUBKEY,
-        randomAccountAsId: position.account.seed,
-        feeTokenAccount: getAssociatedTokenAddressSync(
-          quoteToken,
-          new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
-          false,
-          quoteTokenProgram
-        ),
-        fromTokenAccount: getAssociatedTokenAddressSync(
-          quoteToken,
-          lavarageProgram.provider.publicKey!,
-          false,
-          quoteTokenProgram
-        ),
-        tokenProgram: quoteTokenProgram!,
-        toTokenAccount: getAssociatedTokenAddressSync(
-          quoteToken,
-          pool.account.nodeWallet,
-          true,
-          quoteTokenProgram
-        ),
-        mint: quoteToken,
-      })
-      .remainingAccounts(
-        partnerFeeRecipient && partnerFeeMarkupAsPkey
-          ? [
-            {
-              pubkey: getAssociatedTokenAddressSync(
-                quoteToken,
-                partnerFeeRecipient,
-                false,
-                quoteTokenProgram
-              ),
-              isSigner: false,
-              isWritable: true,
-            },
-            {
-              pubkey: partnerFeeMarkupAsPkey,
-              isSigner: false,
-              isWritable: false,
-            },
-          ]
-          : []
-      )
-      .instruction();
+    repaySolIx = useReferral
+      ? await lavarageProgram.methods
+          .tradingCloseRepaySolWithReferral(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9997),
+            new BN(discountBps),
+            new BN(referralBps)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+              false,
+              quoteTokenProgram
+            ),
+            fromTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              lavarageProgram.provider.publicKey!,
+              false,
+              quoteTokenProgram
+            ),
+            tokenProgram: quoteTokenProgram!,
+            toTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              pool.account.nodeWallet,
+              true,
+              quoteTokenProgram
+            ),
+            mint: quoteToken,
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+              ? [
+                {
+                  pubkey: getAssociatedTokenAddressSync(
+                    quoteToken,
+                    userVaultPda,
+                    true, // allowOwnerOffCurve for PDA
+                    quoteTokenProgram
+                  ),
+                  isSigner: false,
+                  isWritable: true,
+                }
+              ]
+              : []
+          )
+          .instruction()
+      : await lavarageProgram.methods
+          .tradingCloseRepaySol(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9997)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+              false,
+              quoteTokenProgram
+            ),
+            fromTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              lavarageProgram.provider.publicKey!,
+              false,
+              quoteTokenProgram
+            ),
+            tokenProgram: quoteTokenProgram!,
+            toTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              pool.account.nodeWallet,
+              true,
+              quoteTokenProgram
+            ),
+            mint: quoteToken,
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey
+              ? [
+                {
+                  pubkey: getAssociatedTokenAddressSync(
+                    quoteToken,
+                    partnerFeeRecipient,
+                    false,
+                    quoteTokenProgram
+                  ),
+                  isSigner: false,
+                  isWritable: true,
+                },
+                {
+                  pubkey: partnerFeeMarkupAsPkey,
+                  isSigner: false,
+                  isWritable: false,
+                },
+              ]
+              : []
+          )
+          .instruction();
   } else {
-    repaySolIx = await lavarageProgram.methods
-      .tradingCloseRepaySol(
-        new BN(jupInstruction.quoteResponse.outAmount),
-        new BN(9998)
-      )
-      .accountsStrict({
-        nodeWallet: pool.account.nodeWallet,
-        positionAccount: positionAccountPDA,
-        tradingPool: poolPubKey,
-        trader: lavarageProgram.provider.publicKey!,
-        systemProgram: SystemProgram.programId,
-        clock: SYSVAR_CLOCK_PUBKEY,
-        randomAccountAsId: position.account.seed,
-        feeTokenAccount: getAssociatedTokenAddressSync(
-          quoteToken,
-          new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
-          false,
-          quoteTokenProgram
-        ),
-        fromTokenAccount: getAssociatedTokenAddressSync(
-          quoteToken,
-          lavarageProgram.provider.publicKey!,
-          false,
-          quoteTokenProgram
-        ),
-        tokenProgram: quoteTokenProgram!,
-        toTokenAccount: getAssociatedTokenAddressSync(
-          quoteToken,
-          pool.account.nodeWallet,
-          true,
-          quoteTokenProgram
-        ),
-        mint: quoteToken,
-      })
-      .remainingAccounts(
-        partnerFeeRecipient && partnerFeeMarkupAsPkey
-          ? [
-            {
-              pubkey: getAssociatedTokenAddressSync(
-                quoteToken,
-                partnerFeeRecipient,
-                false,
-                quoteTokenProgram
-              ),
-              isSigner: false,
-              isWritable: true,
-            },
-            {
-              pubkey: partnerFeeMarkupAsPkey,
-              isSigner: false,
-              isWritable: false,
-            },
-          ]
-          : []
-      )
-      .instruction();
+    repaySolIx = useReferral
+      ? await lavarageProgram.methods
+          .tradingCloseRepaySolWithReferral(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9998),
+            new BN(discountBps),
+            new BN(referralBps)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+              false,
+              quoteTokenProgram
+            ),
+            fromTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              lavarageProgram.provider.publicKey!,
+              false,
+              quoteTokenProgram
+            ),
+            tokenProgram: quoteTokenProgram!,
+            toTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              pool.account.nodeWallet,
+              true,
+              quoteTokenProgram
+            ),
+            mint: quoteToken,
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+              ? [
+                {
+                  pubkey: getAssociatedTokenAddressSync(
+                    quoteToken,
+                    userVaultPda,
+                    true, // allowOwnerOffCurve for PDA
+                    quoteTokenProgram
+                  ),
+                  isSigner: false,
+                  isWritable: true,
+                }
+              ]
+              : []
+          )
+          .instruction()
+      : await lavarageProgram.methods
+          .tradingCloseRepaySol(
+            new BN(jupInstruction.quoteResponse.outAmount),
+            new BN(9998)
+          )
+          .accountsStrict({
+            nodeWallet: pool.account.nodeWallet,
+            positionAccount: positionAccountPDA,
+            tradingPool: poolPubKey,
+            trader: lavarageProgram.provider.publicKey!,
+            systemProgram: SystemProgram.programId,
+            clock: SYSVAR_CLOCK_PUBKEY,
+            randomAccountAsId: position.account.seed,
+            feeTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
+              false,
+              quoteTokenProgram
+            ),
+            fromTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              lavarageProgram.provider.publicKey!,
+              false,
+              quoteTokenProgram
+            ),
+            tokenProgram: quoteTokenProgram!,
+            toTokenAccount: getAssociatedTokenAddressSync(
+              quoteToken,
+              pool.account.nodeWallet,
+              true,
+              quoteTokenProgram
+            ),
+            mint: quoteToken,
+          })
+          .remainingAccounts(
+            partnerFeeRecipient && partnerFeeMarkupAsPkey
+              ? [
+                {
+                  pubkey: getAssociatedTokenAddressSync(
+                    quoteToken,
+                    partnerFeeRecipient,
+                    false,
+                    quoteTokenProgram
+                  ),
+                  isSigner: false,
+                  isWritable: true,
+                },
+                {
+                  pubkey: partnerFeeMarkupAsPkey,
+                  isSigner: false,
+                  isWritable: false,
+                },
+              ]
+              : []
+          )
+          .instruction();
     const {
       setupInstructions,
       swapInstruction: swapInstructionPayload,
@@ -2729,6 +3004,8 @@ export const closeTradeV2 = async (
 
   if (splitTransactions) {
     const setUpInstructions = [
+      partnerFeeRecipientVaultCreateIx,
+      partnerFeeRecipientTokenAccountCreateIx,
       jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
       createAssociatedTokenAccountInstruction,
     ].filter((i) => !!i);
@@ -2765,6 +3042,8 @@ export const closeTradeV2 = async (
   }
 
   const allInstructions = [
+    partnerFeeRecipientVaultCreateIx,
+    partnerFeeRecipientTokenAccountCreateIx,
     jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
     createAssociatedTokenAccountInstruction,
     jupInstruction.instructions?.tokenLedgerInstruction

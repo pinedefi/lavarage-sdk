@@ -689,6 +689,69 @@ export type Lavarage = {
       ]
     },
     {
+      "name": "tradingCloseRepaySolWithReferral",
+      "accounts": [
+        {
+          "name": "positionAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "trader",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "randomAccountAsId",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeReceipient",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "closingPositionSize",
+          "type": "u64"
+        },
+        {
+          "name": "closeType",
+          "type": "u64"
+        },
+        {
+          "name": "discountBps",
+          "type": "u64"
+        },
+        {
+          "name": "referralBps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "tradingClosePartialRepaySol",
       "accounts": [
         {
@@ -2278,6 +2341,69 @@ export const IDL: Lavarage = {
         },
         {
           "name": "closeType",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "tradingCloseRepaySolWithReferral",
+      "accounts": [
+        {
+          "name": "positionAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "trader",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "tradingPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nodeWallet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "clock",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "randomAccountAsId",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeReceipient",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "closingPositionSize",
+          "type": "u64"
+        },
+        {
+          "name": "closeType",
+          "type": "u64"
+        },
+        {
+          "name": "discountBps",
+          "type": "u64"
+        },
+        {
+          "name": "referralBps",
           "type": "u64"
         }
       ]
