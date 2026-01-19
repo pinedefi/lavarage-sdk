@@ -1410,7 +1410,7 @@ export const openTradeV2 = async (
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  const useReferral = discountBps !== undefined && referralBps !== undefined;
+  const useReferral = (discountBps !== undefined && discountBps > 0) || referralBps !== undefined;
 
   // Check if partner fee recipient vault and token account need to be created
   let partnerFeeRecipientVaultCreateIx: TransactionInstruction | undefined;
@@ -1469,8 +1469,8 @@ export const openTradeV2 = async (
         .tradingOpenBorrowWithReferral(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
-          new BN(discountBps),
-          new BN(referralBps)
+          new BN(discountBps || 0),
+          new BN(referralBps || 0)
         )
         .accountsStrict({
           nodeWallet: offer.account.nodeWallet,
