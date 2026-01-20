@@ -866,7 +866,7 @@ export const borrowV2 = async (
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
  * @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
  * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
- * @param discountBps - Optional discount basis points for the referral program
+ * @param discountBps - Optional discount basis points for the referral program and discount program
  * @param referralBps - Optional referral basis points for the referral program
  * @param optionalRPCResults - Optional RPC results to use for the transaction (speeds up the transaction building)
  * 
@@ -1230,7 +1230,7 @@ export const openTradeV1 = async (
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
  * @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
  * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
- * @param discountBps - Optional discount basis points for the referral program
+ * @param discountBps - Optional discount basis points for the referral program and discount program
  * @param referralBps - Optional referral basis points for the referral program
  * @param optionalRPCResults - Optional RPC results to use for the transaction (speeds up the transaction building)
  * 
@@ -2091,7 +2091,7 @@ export const partialRepayV2 = async (
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
  * @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
  * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
- * @param discountBps - Optional discount basis points for the referral program
+ * @param discountBps - Optional discount basis points for the referral program and discount program
  * @param referralBps - Optional referral basis points for the referral program
  * 
  * @returns Transaction to close the position
@@ -2234,7 +2234,7 @@ export const closeTradeV1 = async (
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  const useReferral = discountBps !== undefined && referralBps !== undefined;
+  const shouldUseDiscountProgram = (discountBps !== undefined && discountBps > 0) || referralBps !== undefined;
 
   // Check if partner fee recipient vault needs to be initialized via referralVaultProgram
   let partnerFeeRecipientCreateIx: TransactionInstruction | undefined;
@@ -2279,13 +2279,13 @@ export const closeTradeV1 = async (
   let repaySolIx: TransactionInstruction | null = null;
   let jupiterIxs: TransactionInstruction[] = [];
   if (jupInstruction.instructions == undefined) {
-    repaySolIx = useReferral
+    repaySolIx = shouldUseDiscountProgram
       ? await lavarageProgram.methods
           .tradingCloseRepaySolWithReferral(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9997),
-            new BN(discountBps),
-            new BN(referralBps)
+            new BN(discountBps || 0),
+            new BN(referralBps || 0)
           )
           .accountsStrict({
             nodeWallet: pool.account.nodeWallet,
@@ -2342,13 +2342,13 @@ export const closeTradeV1 = async (
           )
           .instruction();
   } else {
-    repaySolIx = useReferral
+    repaySolIx = shouldUseDiscountProgram
       ? await lavarageProgram.methods
           .tradingCloseRepaySolWithReferral(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9998),
-            new BN(discountBps),
-            new BN(referralBps)
+            new BN(discountBps || 0),
+            new BN(referralBps || 0)
           )
           .accountsStrict({
             nodeWallet: pool.account.nodeWallet,
@@ -2520,7 +2520,7 @@ export const closeTradeV1 = async (
  * @param computeBudgetMicroLamports - Optional compute budget for priority fees
 * @param platformFeeRecipient - Optional wallet to receive platform fees (jup, okx)
  * @param splitTransactions - Optional boolean to split the transaction into multiple transactions (jito bundle)
- * @param discountBps - Optional discount basis points for the referral program
+ * @param discountBps - Optional discount basis points for the referral program and discount program
  * @param referralBps - Optional referral basis points for the referral program
  * 
  * @returns Transaction to close the position
@@ -2669,7 +2669,7 @@ export const closeTradeV2 = async (
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  const useReferral = discountBps !== undefined && referralBps !== undefined;
+  const shouldUseDiscountProgram = (discountBps !== undefined && discountBps > 0) || referralBps !== undefined;
 
   // Check if partner fee recipient vault and token account need to be created
   let partnerFeeRecipientVaultCreateIx: TransactionInstruction | undefined;
@@ -2743,13 +2743,13 @@ export const closeTradeV2 = async (
   let repaySolIx: TransactionInstruction | null = null;
   let jupiterIxs: TransactionInstruction[] = [];
   if (jupInstruction.instructions == undefined) {
-    repaySolIx = useReferral
+    repaySolIx = shouldUseDiscountProgram
       ? await lavarageProgram.methods
           .tradingCloseRepaySolWithReferral(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9997),
-            new BN(discountBps),
-            new BN(referralBps)
+            new BN(discountBps || 0),
+            new BN(referralBps || 0)
           )
           .accountsStrict({
             nodeWallet: pool.account.nodeWallet,
@@ -2854,13 +2854,13 @@ export const closeTradeV2 = async (
           )
           .instruction();
   } else {
-    repaySolIx = useReferral
+    repaySolIx = shouldUseDiscountProgram
       ? await lavarageProgram.methods
           .tradingCloseRepaySolWithReferral(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9998),
-            new BN(discountBps),
-            new BN(referralBps)
+            new BN(discountBps || 0),
+            new BN(referralBps || 0)
           )
           .accountsStrict({
             nodeWallet: pool.account.nodeWallet,
