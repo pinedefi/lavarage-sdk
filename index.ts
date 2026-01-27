@@ -1464,6 +1464,13 @@ export const openTradeV2 = async (
     }
   }
 
+  const partnerDirectAta = partnerFeeRecipient ? getAssociatedTokenAddressSync(
+    quoteToken,
+    partnerFeeRecipient,
+    true,
+    quoteTokenProgram
+  ) : undefined;
+
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
         .tradingOpenBorrowWithReferral(
@@ -1553,15 +1560,10 @@ export const openTradeV2 = async (
           ),
         })
         .remainingAccounts(
-          partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
+          partnerFeeRecipient && partnerFeeMarkupAsPkey && partnerDirectAta
             ? [
               {
-                pubkey: getAssociatedTokenAddressSync(
-                  quoteToken,
-                  userVaultPda,
-                  true, // allowOwnerOffCurve for PDA
-                  quoteTokenProgram
-                ),
+                pubkey: partnerDirectAta,
                 isSigner: false,
                 isWritable: true,
               },
