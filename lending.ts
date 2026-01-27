@@ -130,7 +130,7 @@ async function createNodeWallet(
     );
     // V2 version
     instructions.push(await (lavarageProgram as Program<LavarageV2>).methods
-      .lpOperatorCreateNodeWallet(new BN(params.liquidationLtv))
+      .lpOperatorCreateNodeWallet(params.liquidationLtv)
       .accounts({
         nodeWallet: nodeWallet,
         operator: new PublicKey(params.operator),
@@ -615,7 +615,7 @@ export async function createOffer(
 
   // Both V1 and V2 lpOperatorCreateTradingPool require mint parameter
   const instruction = await lavarageProgram.methods
-    .lpOperatorCreateTradingPool(new BN(params.interestRate))
+    .lpOperatorCreateTradingPool(params.interestRate)
     .accounts({
       tradingPool: params.tradingPool,
       operator: params.poolOwner,
@@ -776,7 +776,7 @@ export async function updateInterestRate(
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
   const instruction = await lavarageProgram.methods
-    .lpOperatorUpdateInterestRate(new BN(params.interestRate))
+    .lpOperatorUpdateInterestRate(params.interestRate)
     .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
@@ -880,7 +880,7 @@ export async function updateOffer(
 
   // Update interest rate instruction
   const updateInterestRateInstruction = await lavarageProgram.methods
-    .lpOperatorUpdateInterestRate(new BN(params.interestRate))
+    .lpOperatorUpdateInterestRate(params.interestRate)
     .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
