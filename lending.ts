@@ -1,6 +1,6 @@
 import { BN, Program } from "@coral-xyz/anchor";
-import { Lavarage } from "./idl/lavarage";
-import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
+import { Lavarage as LavarageSOL } from "./idl/lavarageSOL";
+import { Lavarage as LavarageUSDC } from "./idl/lavarageUSDC";
 import {
   ComputeBudgetProgram,
   Keypair,
@@ -104,7 +104,7 @@ export function getWithdrawalAccessListPDA(
 }
 
 async function createNodeWallet(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     operator: PublicKey;
     mint?: string; // Required for V2, optional for V1
@@ -129,12 +129,10 @@ async function createNodeWallet(
       lavarageProgram.programId
     );
     // V2 version
-    instructions.push(await (lavarageProgram as Program<LavarageV2>).methods
+    instructions.push(await (lavarageProgram as Program<LavarageUSDC>).methods
       .lpOperatorCreateNodeWallet(params.liquidationLtv)
       .accounts({
-        nodeWallet: nodeWallet,
         operator: new PublicKey(params.operator),
-        systemProgram: SystemProgram.programId,
         mint: new PublicKey(params.mint),
       })
       .instruction());
@@ -160,12 +158,11 @@ async function createNodeWallet(
     }));// Some code
     
     // V1 version
-    instructions.push(await (lavarageProgram as Program<Lavarage>).methods
+    instructions.push(await (lavarageProgram as Program<LavarageSOL>).methods
       .lpOperatorCreateNodeWallet()
       .accounts({
         nodeWallet: auxAccountPubkey,
         operator: new PublicKey(params.operator),
-        systemProgram: SystemProgram.programId,
       })
       .instruction());
   }
@@ -216,7 +213,7 @@ async function createNodeWallet(
  * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
  */
 export async function depositFunds(
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   params: {
     nodeWallet: PublicKey;
     mint?: string; // Required for V2, optional for V1
@@ -238,7 +235,6 @@ export async function depositFunds(
       .accounts({
         nodeWallet: params.nodeWallet,
         funder: params.funder,
-        systemProgram: SystemProgram.programId,
       })
       .instruction();
   } else {
@@ -327,7 +323,7 @@ export async function depositFunds(
  * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
  */
 export async function withdrawFundsV1(
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   params: {
     nodeWallet: PublicKey;
     funder: PublicKey;
@@ -397,7 +393,7 @@ export async function withdrawFundsV1(
  * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
  */
 export async function withdrawFundsV2(
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageUSDC>,
   params: {
     nodeWallet: PublicKey;
     funder: PublicKey;
@@ -489,7 +485,7 @@ export async function withdrawFundsV2(
  */
 // Unified withdraw function that works with both V1 and V2
 export async function withdrawFunds(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     nodeWallet: PublicKey;
     funder: PublicKey;
@@ -502,7 +498,7 @@ export async function withdrawFunds(
 ): Promise<VersionedTransaction> {
   // Check if mint is provided to determine if this is V2
   if (params.mint) {
-    return withdrawFundsV2(lavarageProgram as Program<LavarageV2>, {
+    return withdrawFundsV2(lavarageProgram as Program<LavarageUSDC>, {
       nodeWallet: params.nodeWallet,
       funder: params.funder,
       mint: params.mint,
@@ -512,7 +508,7 @@ export async function withdrawFunds(
       computeBudgetMicroLamports: params.computeBudgetMicroLamports,
     });
   } else {
-    return withdrawFundsV1(lavarageProgram as Program<Lavarage>, {
+    return withdrawFundsV1(lavarageProgram as Program<LavarageSOL>, {
       nodeWallet: params.nodeWallet,
       funder: params.funder,
       amount: params.amount,
@@ -554,7 +550,7 @@ export async function withdrawFunds(
  * ```
  */
 export async function createOffer(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
@@ -565,7 +561,7 @@ export async function createOffer(
     interestRate: number;
     maxExposure: number;
     computeBudgetMicroLamports?: number;
-    maxBorrow?: number;
+    openLtv?: number;
   }
 ): Promise<VersionedTransaction> {
   
@@ -617,11 +613,9 @@ export async function createOffer(
   const instruction = await lavarageProgram.methods
     .lpOperatorCreateTradingPool(params.interestRate)
     .accounts({
-      tradingPool: params.tradingPool,
       operator: params.poolOwner,
       nodeWallet: nodeWalletPubKey,
       mint: new PublicKey(params.mint), // Always required for both V1 and V2
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -631,7 +625,6 @@ export async function createOffer(
       tradingPool: params.tradingPool,
       nodeWallet: nodeWalletPubKey,
       operator: params.poolOwner,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -646,12 +639,11 @@ export async function createOffer(
   });
 
   const updateMaxBorrowInstruction = await lavarageProgram.methods
-    .lpOperatorUpdateMaxBorrow(new BN(params.maxBorrow ?? 0))
-    .accountsStrict({
+    .lpOperatorUpdateOpenLtv(new BN(params.openLtv ?? 0))
+    .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: nodeWalletPubKey,
       operator: params.poolOwner,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -662,7 +654,7 @@ export async function createOffer(
       ...createNodeWalletInstruction,
       instruction,
       updateMaxExposureInstruction,
-      params.maxBorrow ? updateMaxBorrowInstruction : undefined,
+      params.openLtv ? updateMaxBorrowInstruction : undefined,
       computeFeeIx,
     ].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
@@ -699,7 +691,7 @@ export async function createOffer(
  * ```
  */
 export async function updateMaxExposure(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     nodeWallet: string;
@@ -717,7 +709,6 @@ export async function updateMaxExposure(
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
       operator: params.poolOwner,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -763,7 +754,7 @@ export async function updateMaxExposure(
  * ```
  */
 export async function updateInterestRate(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     nodeWallet: string;
@@ -781,7 +772,6 @@ export async function updateInterestRate(
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
       operator: params.poolOwner,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -834,7 +824,7 @@ export async function updateInterestRate(
  * @see {@link updateMaxExposure} - Update only max exposure
  */
 export async function updateOffer(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
@@ -874,7 +864,6 @@ export async function updateOffer(
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
       operator: params.poolOwner,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -885,7 +874,6 @@ export async function updateOffer(
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
       operator: params.poolOwner,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -937,12 +925,12 @@ export async function updateOffer(
  * ```
  */
 export async function updateMaxBorrow(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     nodeWallet: string;
     oracle: PublicKey;
-    maxBorrow: number;
+    openLtv: number;
     computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
@@ -950,12 +938,11 @@ export async function updateMaxBorrow(
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
   const instruction = await lavarageProgram.methods
-    .lpOperatorUpdateMaxBorrow(new BN(params.maxBorrow))
-    .accountsStrict({
+    .lpOperatorUpdateOpenLtv(new BN(params.openLtv))
+    .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
       operator: params.oracle,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
@@ -973,7 +960,7 @@ export async function updateMaxBorrow(
 }
 
 export async function addToWithdrawalAccessList(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     nodeWallet: PublicKey;
     authority: PublicKey;
@@ -984,11 +971,9 @@ export async function addToWithdrawalAccessList(
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  const withdrawalAccessList = getWithdrawalAccessListPDA(lavarageProgram.programId);
   const instruction = await lavarageProgram.methods
     .addWithdrawalAccess(params.toPubkey)
     .accounts({
-      withdrawalAccessList: withdrawalAccessList,
       nodeWallet: params.nodeWallet,
       authority: params.authority,
     })
@@ -1009,7 +994,7 @@ export async function addToWithdrawalAccessList(
 
 
 export async function removeFromWithdrawalAccessList(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     authority: PublicKey;
     nodeWallet: string; // This is a string in the IDL
@@ -1019,12 +1004,10 @@ export async function removeFromWithdrawalAccessList(
   const { blockhash } =
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
-  const withdrawalAccessList = getWithdrawalAccessListPDA(lavarageProgram.programId);
 
   const instruction = await lavarageProgram.methods
     .removeWithdrawalAccess(params.nodeWallet)
     .accounts({
-      withdrawalAccessList: withdrawalAccessList,
       authority: params.authority,
     })
     .instruction();
@@ -1044,7 +1027,7 @@ export async function removeFromWithdrawalAccessList(
 
 
 export async function getWithdrawalAccessList(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     nodeWallet: string;
   }
