@@ -1,6 +1,6 @@
 {
   "name": "@lavarage/sdk",
-  "version": "7.5.13",
+  "version": "7.6.0",
   "description": "Lavarage SDK",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -18,9 +18,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@coral-xyz/anchor": "0.29.0",
-    "@solana/spl-token": "*",
-    "@solana/web3.js": "1.98.0",
+    "@coral-xyz/anchor": "0.32.1",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "1.98.4",
+    "@switchboard-xyz/on-demand": "^3.9.0",
     "bs58": "^6.0.0",
     "ethers": "^6.13.5"
   },

@@ -1,0 +1,3168 @@
+{
+  "address": "CRSeeBqjDnm3UPefJ9gxrtngTsnQRhEJiTA345Q83X3v",
+  "metadata": {
+    "name": "lavarage",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_withdrawal_access",
+      "discriminator": [
+        45,
+        247,
+        214,
+        153,
+        224,
+        115,
+        136,
+        178
+      ],
+      "accounts": [
+        {
+          "name": "withdrawal_access_list",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  105,
+                  116,
+                  104,
+                  100,
+                  114,
+                  97,
+                  119,
+                  97,
+                  108,
+                  95,
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115,
+                  95,
+                  108,
+                  105,
+                  115,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "to_pubkey",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "delegate_close_position",
+      "discriminator": [
+        100,
+        249,
+        236,
+        96,
+        249,
+        195,
+        17,
+        157
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true
+        },
+        {
+          "name": "delegate_operator",
+          "signer": true
+        },
+        {
+          "name": "account",
+          "writable": true,
+          "relations": [
+            "delegate"
+          ]
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "node_wallet_token_account",
+          "writable": true
+        },
+        {
+          "name": "delegate_token_account",
+          "writable": true
+        },
+        {
+          "name": "fee_token_account",
+          "writable": true
+        },
+        {
+          "name": "profit_token_account",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "qt_mint"
+        }
+      ],
+      "args": [
+        {
+          "name": "closing_position_size",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "delegate_execute_tp",
+      "discriminator": [
+        207,
+        251,
+        148,
+        38,
+        214,
+        153,
+        54,
+        242
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true
+        },
+        {
+          "name": "delegate_operator",
+          "signer": true
+        },
+        {
+          "name": "account",
+          "writable": true,
+          "relations": [
+            "delegate"
+          ]
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "position_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "account"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool.collateral_type",
+                "account": "Pool"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "delegate_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "delegate_operator"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool.collateral_type",
+                "account": "Pool"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "mint"
+        }
+      ],
+      "args": [
+        {
+          "name": "seed",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "init_withdrawal_access_list",
+      "discriminator": [
+        118,
+        110,
+        194,
+        104,
+        220,
+        145,
+        69,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "withdrawal_access_list",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  105,
+                  116,
+                  104,
+                  100,
+                  114,
+                  97,
+                  119,
+                  97,
+                  108,
+                  95,
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115,
+                  95,
+                  108,
+                  105,
+                  115,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "lp_collect_interest",
+      "discriminator": [
+        181,
+        55,
+        21,
+        23,
+        53,
+        171,
+        73,
+        115
+      ],
+      "accounts": [
+        {
+          "name": "mint"
+        },
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "from_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "position_account"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "to_token_account",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "oracle",
+          "signer": true
+        },
+        {
+          "name": "oracle_queue",
+          "address": "A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w"
+        },
+        {
+          "name": "base_oracle_quote"
+        },
+        {
+          "name": "clock_sysvar",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "slot_hashes_sysvar",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "lp_liquidate",
+      "discriminator": [
+        36,
+        244,
+        70,
+        20,
+        135,
+        159,
+        86,
+        149
+      ],
+      "accounts": [
+        {
+          "name": "mint"
+        },
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "from_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "position_account"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "to_token_account",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "oracle",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "position_size",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_create_node_wallet",
+      "discriminator": [
+        193,
+        83,
+        139,
+        125,
+        229,
+        111,
+        150,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "lp_operator_create_trading_pool",
+      "discriminator": [
+        182,
+        99,
+        232,
+        188,
+        202,
+        38,
+        71,
+        211
+      ],
+      "accounts": [
+        {
+          "name": "trading_pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "operator"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreateTradingPoolArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_fund_node_wallet",
+      "discriminator": [
+        204,
+        29,
+        191,
+        156,
+        11,
+        132,
+        135,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_update_trading_pool",
+      "discriminator": [
+        99,
+        179,
+        6,
+        181,
+        30,
+        148,
+        30,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdatePoolArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_withdraw_from_node_wallet",
+      "discriminator": [
+        162,
+        244,
+        237,
+        100,
+        96,
+        130,
+        60,
+        117
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "withdrawal_access_list"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "remove_withdrawal_access",
+      "discriminator": [
+        218,
+        186,
+        7,
+        130,
+        180,
+        40,
+        111,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "withdrawal_access_list",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  105,
+                  116,
+                  104,
+                  100,
+                  114,
+                  97,
+                  119,
+                  97,
+                  108,
+                  95,
+                  97,
+                  99,
+                  99,
+                  101,
+                  115,
+                  115,
+                  95,
+                  108,
+                  105,
+                  115,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "from_pubkey",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "rescue_stuck_tokens",
+      "discriminator": [
+        104,
+        17,
+        134,
+        60,
+        192,
+        138,
+        94,
+        244
+      ],
+      "accounts": [
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "position_token_account",
+          "writable": true
+        },
+        {
+          "name": "trader_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "position.trader",
+                "account": "Position"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "position_mint",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "sync_node_wallet",
+      "discriminator": [
+        185,
+        205,
+        57,
+        48,
+        112,
+        135,
+        240,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "trading_close_borrow_collateral",
+      "discriminator": [
+        160,
+        104,
+        113,
+        179,
+        42,
+        80,
+        8,
+        16
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "instructions",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "from_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "position_account"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "to_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "random_account_as_id"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "trading_close_partial_repay_sol",
+      "discriminator": [
+        29,
+        236,
+        62,
+        88,
+        170,
+        105,
+        68,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "repay_percentage",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_close_repay_sol",
+      "discriminator": [
+        74,
+        90,
+        5,
+        111,
+        35,
+        171,
+        135,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "closing_position_size",
+          "type": "u64"
+        },
+        {
+          "name": "close_type",
+          "type": "u64"
+        },
+        {
+          "name": "discount_bps",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "referral_bps",
+          "type": {
+            "option": "u64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "trading_create_tp_delegate",
+      "discriminator": [
+        174,
+        200,
+        59,
+        127,
+        100,
+        216,
+        183,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "delegated_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "original_operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "delegated_account"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "lower_threshold",
+          "type": "u64"
+        },
+        {
+          "name": "delegate_operator",
+          "type": "pubkey"
+        },
+        {
+          "name": "partial_percentage",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_data_accrued_interest",
+      "discriminator": [
+        227,
+        39,
+        217,
+        0,
+        88,
+        3,
+        25,
+        115
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
+      "name": "trading_management_split_position",
+      "discriminator": [
+        230,
+        180,
+        252,
+        200,
+        8,
+        246,
+        131,
+        54
+      ],
+      "accounts": [
+        {
+          "name": "original_position",
+          "writable": true
+        },
+        {
+          "name": "new_position_one",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "original_position.pool",
+                "account": "Position"
+              },
+              {
+                "kind": "arg",
+                "path": "seed1"
+              }
+            ]
+          }
+        },
+        {
+          "name": "new_position_two",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "original_position.pool",
+                "account": "Position"
+              },
+              {
+                "kind": "arg",
+                "path": "seed2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "original_position_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "original_position"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "new_position_token_account_one",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "new_position_one"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "new_position_token_account_two",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "new_position_two"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "split_ratio_bps",
+          "type": "u64"
+        },
+        {
+          "name": "seed1",
+          "type": "pubkey"
+        },
+        {
+          "name": "seed2",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "trading_open_add_collateral",
+      "discriminator": [
+        21,
+        160,
+        90,
+        163,
+        189,
+        122,
+        164,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "to_token_account",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "position_account"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "oracle_queue",
+          "address": "A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w"
+        },
+        {
+          "name": "base_oracle_quote"
+        },
+        {
+          "name": "quote_oracle_quote"
+        },
+        {
+          "name": "clock_sysvar",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "slot_hashes_sysvar",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "max_interest_rate",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "trading_open_borrow",
+      "discriminator": [
+        53,
+        88,
+        1,
+        144,
+        58,
+        65,
+        182,
+        60
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "trader"
+              },
+              {
+                "kind": "account",
+                "path": "trading_pool"
+              },
+              {
+                "kind": "account",
+                "path": "random_account_as_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "instructions",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "position_size",
+          "type": "u64"
+        },
+        {
+          "name": "user_pays",
+          "type": "u64"
+        },
+        {
+          "name": "discount_bps",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "referral_bps",
+          "type": {
+            "option": "u64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "trading_remove_tp_delegate",
+      "discriminator": [
+        88,
+        18,
+        149,
+        143,
+        124,
+        43,
+        68,
+        178
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "delegated_account"
+              }
+            ]
+          }
+        },
+        {
+          "name": "original_operator",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "delegate"
+          ]
+        },
+        {
+          "name": "delegated_account"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Delegate",
+      "discriminator": [
+        92,
+        145,
+        166,
+        111,
+        11,
+        38,
+        38,
+        247
+      ]
+    },
+    {
+      "name": "NodeWallet",
+      "discriminator": [
+        48,
+        117,
+        214,
+        115,
+        125,
+        23,
+        94,
+        246
+      ]
+    },
+    {
+      "name": "Pool",
+      "discriminator": [
+        241,
+        154,
+        109,
+        4,
+        17,
+        177,
+        109,
+        188
+      ]
+    },
+    {
+      "name": "Position",
+      "discriminator": [
+        170,
+        188,
+        143,
+        228,
+        122,
+        64,
+        247,
+        208
+      ]
+    },
+    {
+      "name": "WithdrawalAccessList",
+      "discriminator": [
+        29,
+        144,
+        191,
+        76,
+        108,
+        26,
+        73,
+        234
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "PositionCloseEvent",
+      "discriminator": [
+        85,
+        5,
+        166,
+        100,
+        218,
+        87,
+        230,
+        129
+      ]
+    },
+    {
+      "name": "PositionOpenEvent",
+      "discriminator": [
+        84,
+        127,
+        249,
+        160,
+        99,
+        95,
+        120,
+        120
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "AddressMismatch",
+      "msg": "Address Mismatch"
+    },
+    {
+      "code": 6001,
+      "name": "ProgramMismatch",
+      "msg": "Program Mismatch"
+    },
+    {
+      "code": 6002,
+      "name": "MissingRepay",
+      "msg": "Missing Repay"
+    },
+    {
+      "code": 6003,
+      "name": "IncorrectOwner",
+      "msg": "Incorrect Owner"
+    },
+    {
+      "code": 6004,
+      "name": "IncorrectProgramAuthority",
+      "msg": "Incorrect Program Authority"
+    },
+    {
+      "code": 6005,
+      "name": "CannotBorrowBeforeRepay",
+      "msg": "Cannot Borrow Before Repay"
+    },
+    {
+      "code": 6006,
+      "name": "UnknownInstruction",
+      "msg": "Unknown Instruction"
+    },
+    {
+      "code": 6007,
+      "name": "ExpectedCollateralNotEnough",
+      "msg": "Expected collateral not enough"
+    },
+    {
+      "code": 6008,
+      "name": "ForTesting",
+      "msg": "TestError"
+    },
+    {
+      "code": 6009,
+      "name": "BlacklistedAccount",
+      "msg": "Account is blacklisted"
+    },
+    {
+      "code": 6010,
+      "name": "AccessEntryAlreadyExists",
+      "msg": "Access entry already exists"
+    },
+    {
+      "code": 6011,
+      "name": "AccessEntryNotFound",
+      "msg": "Access entry not found"
+    },
+    {
+      "code": 6012,
+      "name": "UnauthorizedWithdrawal",
+      "msg": "Unauthorized Withdrawal"
+    },
+    {
+      "code": 6013,
+      "name": "AccountAlreadyInitialized",
+      "msg": "Account already initialized"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidSignature",
+      "msg": "The provided signature is invalid."
+    },
+    {
+      "code": 6015,
+      "name": "InvalidOracle",
+      "msg": "The provided oracle is invalid."
+    },
+    {
+      "code": 6016,
+      "name": "InvalidSplitRatio",
+      "msg": "Invalid split ratio. Must be between 1 and 99"
+    },
+    {
+      "code": 6017,
+      "name": "PositionsNotMergeable",
+      "msg": "Positions cannot be merged - must have same pool, trader, and interest rate"
+    },
+    {
+      "code": 6018,
+      "name": "OnlyDelegateOperator",
+      "msg": "Only delegate operator can execute TP"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidDelegateType",
+      "msg": "Invalid delegate type"
+    },
+    {
+      "code": 6020,
+      "name": "MissingRequiredPriceFeed",
+      "msg": "Missing required price feed"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidPrice",
+      "msg": "Price must be greater than 0"
+    },
+    {
+      "code": 6022,
+      "name": "MathOverflow",
+      "msg": "Arithmetic operation overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "CreateTradingPoolArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "interest_rate",
+            "type": "u8"
+          },
+          {
+            "name": "feed_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "max_exposure",
+            "type": "u64"
+          },
+          {
+            "name": "open_ltv",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Delegate",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "delegate_type",
+            "type": "u8"
+          },
+          {
+            "name": "field_1",
+            "type": "u64"
+          },
+          {
+            "name": "field_2",
+            "type": "u64"
+          },
+          {
+            "name": "field_3",
+            "type": "u64"
+          },
+          {
+            "name": "field_4",
+            "type": "pubkey"
+          },
+          {
+            "name": "field_5",
+            "type": "pubkey"
+          },
+          {
+            "name": "original_operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegate_operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "account",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NodeWallet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total_funds",
+            "type": "u64"
+          },
+          {
+            "name": "total_borrowed",
+            "type": "u64"
+          },
+          {
+            "name": "maintenance_ltv",
+            "type": "u8"
+          },
+          {
+            "name": "liquidation_ltv",
+            "type": "u8"
+          },
+          {
+            "name": "node_operator",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "interest_rate",
+            "type": "u8"
+          },
+          {
+            "name": "collateral_type",
+            "type": "pubkey"
+          },
+          {
+            "name": "unused_0",
+            "docs": [
+              "Previously max_borrow. Can be repurposed again."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "node_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_exposure",
+            "type": "u64"
+          },
+          {
+            "name": "current_exposure",
+            "type": "u64"
+          },
+          {
+            "name": "feed_id",
+            "docs": [
+              "Switchboard Oracle Quote Feed ID"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "open_ltv",
+            "docs": [
+              "The max loan-to-value (LTV) used to determine how much SOL can be borrowed per token (denoted in basis points)."
+            ],
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Position",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "close_status_recall_timestamp",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_paid",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "seed",
+            "type": "pubkey"
+          },
+          {
+            "name": "close_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "closing_position_size",
+            "type": "u64"
+          },
+          {
+            "name": "interest_rate",
+            "type": "u8"
+          },
+          {
+            "name": "last_interest_collect",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionCloseEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_paid",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "open_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "close_type",
+            "type": "u8"
+          },
+          {
+            "name": "close_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "closing_position_size",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionOpenEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_paid",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "open_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdatePoolArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "open_ltv",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "interest_rate",
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "max_exposure",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "feed_id",
+            "type": {
+              "option": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawalAccessEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from_pubkey",
+            "type": "string"
+          },
+          {
+            "name": "to_pubkey",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawalAccessList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "access_entries",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "WithdrawalAccessEntry"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "MAX_BASIS_POINTS",
+      "type": "u16",
+      "value": "10000"
+    },
+    {
+      "name": "ORACLE_MAX_AGE",
+      "type": "u16",
+      "value": "100"
+    },
+    {
+      "name": "ORACLE_PUB_KEY",
+      "type": "pubkey",
+      "value": "joPUhu4So61QnYoGKy8yPDQsrq5xemKtyByHKwqQ7r4"
+    }
+  ]
+}
