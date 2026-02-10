@@ -558,6 +558,8 @@ export const borrowV1 = async (
       systemProgram: SystemProgram.programId,
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
+      tokenProgram: tokenProgram,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
     .instruction();
 
@@ -1137,6 +1139,8 @@ export const openTradeV1 = async (
       systemProgram: SystemProgram.programId,
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
+      tokenProgram: tokenProgram,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
     .instruction();
 
@@ -2275,6 +2279,7 @@ export const closeTradeV1 = async (
       trader: lavarageProgram.provider.publicKey!,
       tokenProgram: tokenProgram!,
       randomAccountAsId: position.account.seed,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
     .instruction();
 
