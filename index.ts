@@ -569,7 +569,6 @@ export const borrowV1 = async (
 
   const allInstructions = [
     fromTokenAccount.instruction!,
-    toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
     tradingOpenBorrowInstruction!,
     openAddCollateralInstruction!,
@@ -1189,7 +1188,6 @@ export const openTradeV1 = async (
 
   const allInstructions = [
     fromTokenAccount.instruction!,
-    toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
@@ -2451,7 +2449,6 @@ export const closeTradeV1 = async (
     const setUpInstructions = [
       partnerFeeRecipientCreateIx,
       jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-      createAssociatedTokenAccountInstruction
     ].filter((i) => !!i);
 
     const allInstructions = [
@@ -2488,7 +2485,6 @@ export const closeTradeV1 = async (
   const allInstructions = [
     partnerFeeRecipientCreateIx,
     jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-    createAssociatedTokenAccountInstruction,
     jupInstruction.instructions?.tokenLedgerInstruction
       ? deserializeInstruction(
         jupInstruction.instructions.tokenLedgerInstruction
