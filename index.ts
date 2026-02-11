@@ -816,6 +816,8 @@ export const borrowV2 = async (
       systemProgram: SystemProgram.programId,
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
+      tokenProgram: tokenProgram,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
     .instruction();
 
@@ -825,7 +827,6 @@ export const borrowV2 = async (
 
   const allInstructions = [
     fromTokenAccount.instruction!,
-    toTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
     tradingOpenBorrowInstruction!,
@@ -1418,6 +1419,13 @@ export const openTradeV2 = async (
   let partnerFeeRecipientVaultCreateIx: TransactionInstruction | undefined;
   let partnerFeeRecipientTokenAccountCreateIx: TransactionInstruction | undefined;
   let userVaultPda: PublicKey | undefined;
+
+  const partnerDirectAta = partnerFeeRecipient ? getAssociatedTokenAddressSync(
+    quoteToken,
+    partnerFeeRecipient,
+    true,
+    quoteTokenProgram
+  ) : undefined;
   
   if (partnerFeeRecipient && partnerFeeMarkupAsPkey && referralVaultProgram) {
     // Derive the userVault PDA
@@ -1464,14 +1472,23 @@ export const openTradeV2 = async (
         ASSOCIATED_TOKEN_PROGRAM_ID
       );
     }
+  } else if (partnerFeeRecipient && partnerDirectAta) {
+    const [partnerDirectAtaInfo] = await lavarageProgram.provider.connection.getMultipleAccountsInfo([
+      partnerDirectAta
+    ]);
+    if (!partnerDirectAtaInfo) {
+      partnerFeeRecipientTokenAccountCreateIx = createAssociatedTokenAccountIdempotentInstruction(
+        lavarageProgram.provider.publicKey!,
+        partnerDirectAta,
+        partnerFeeRecipient!,
+        quoteToken,
+        quoteTokenProgram,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+    }
   }
 
-  const partnerDirectAta = partnerFeeRecipient ? getAssociatedTokenAddressSync(
-    quoteToken,
-    partnerFeeRecipient,
-    true,
-    quoteTokenProgram
-  ) : undefined;
+  
 
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
@@ -1589,6 +1606,8 @@ export const openTradeV2 = async (
       systemProgram: SystemProgram.programId,
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
+      tokenProgram: tokenProgram,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
     .instruction();
 
@@ -1604,7 +1623,6 @@ export const openTradeV2 = async (
   if (splitTransactions) {
     const setUpInstructions = [
       fromTokenAccount.instruction!,
-      toTokenAccount.instruction!,
       partnerFeeRecipientVaultCreateIx,
       partnerFeeRecipientTokenAccountCreateIx,
       ...setupInstructions.map(deserializeInstruction),
@@ -1638,7 +1656,6 @@ export const openTradeV2 = async (
 
   const allInstructions = [
     fromTokenAccount.instruction!,
-    toTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
     tradingOpenBorrowInstruction!,
@@ -2740,6 +2757,7 @@ export const closeTradeV2 = async (
       trader: lavarageProgram.provider.publicKey!,
       tokenProgram: tokenProgram!,
       randomAccountAsId: position.account.seed,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
     .instruction();
 
@@ -3010,7 +3028,7 @@ export const closeTradeV2 = async (
       partnerFeeRecipientVaultCreateIx,
       partnerFeeRecipientTokenAccountCreateIx,
       jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-      createAssociatedTokenAccountInstruction,
+      //createAssociatedTokenAccountInstruction,
     ].filter((i) => !!i);
 
     const allInstructions = [
@@ -3048,7 +3066,7 @@ export const closeTradeV2 = async (
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
     jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-    createAssociatedTokenAccountInstruction,
+    //createAssociatedTokenAccountInstruction,
     jupInstruction.instructions?.tokenLedgerInstruction
       ? deserializeInstruction(
         jupInstruction.instructions.tokenLedgerInstruction
