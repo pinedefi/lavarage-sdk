@@ -35,12 +35,8 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
   createAssociatedTokenAccountInstruction,
-  createTransferInstruction,
-  getAccount,
   getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
-  TokenAccountNotFoundError,
-  TokenInvalidAccountOwnerError,
 } from "@solana/spl-token";
 
 export * from "./evm";

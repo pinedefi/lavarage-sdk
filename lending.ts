@@ -1,4 +1,4 @@
-import { BN, Instruction, Program } from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import { Lavarage } from "./idl/lavarage";
 import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
 import {
