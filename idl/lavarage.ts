@@ -418,6 +418,11 @@ export type Lavarage = {
           "name": "collateralMint",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "usersTokenAccount",
+          "isMut": true,
+          "isSigner": false
         }
       ],
       "args": [
@@ -497,6 +502,11 @@ export type Lavarage = {
         {
           "name": "collateralMint",
           "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "usersTokenAccount",
+          "isMut": true,
           "isSigner": false
         }
       ],
@@ -2141,6 +2151,11 @@ export const IDL: Lavarage = {
           "name": "collateralMint",
           "isMut": false,
           "isSigner": false
+        },
+        {
+          "name": "usersTokenAccount",
+          "isMut": true,
+          "isSigner": false
         }
       ],
       "args": [
@@ -2220,6 +2235,11 @@ export const IDL: Lavarage = {
         {
           "name": "collateralMint",
           "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "usersTokenAccount",
+          "isMut": true,
           "isSigner": false
         }
       ],

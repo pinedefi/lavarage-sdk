@@ -505,6 +505,7 @@ export const borrowV1 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account.address,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -537,6 +538,7 @@ export const borrowV1 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account.address,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey
@@ -576,8 +578,8 @@ export const borrowV1 = async (
   });
 
   const allInstructions = [
-    fromTokenAccount.instruction!,
-    toTokenAccount.instruction!,
+    // fromTokenAccount.instruction!,
+    // toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
     tradingOpenBorrowInstruction!,
     openAddCollateralInstruction!,
@@ -744,6 +746,9 @@ export const borrowV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account!.address,
+          quoteMint: quoteToken,
+          feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -799,6 +804,9 @@ export const borrowV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account!.address,
+          quoteMint: quoteToken,
+          feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -1103,6 +1111,7 @@ export const openTradeV1 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account.address,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -1135,6 +1144,7 @@ export const openTradeV1 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account.address,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey
@@ -1213,8 +1223,8 @@ export const openTradeV1 = async (
   }
 
   const allInstructions = [
-    fromTokenAccount.instruction!,
-    toTokenAccount.instruction!,
+    // fromTokenAccount.instruction!,
+    // toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
@@ -1556,6 +1566,9 @@ export const openTradeV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account!.address,
+          quoteMint: quoteToken,
+          feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -1611,6 +1624,9 @@ export const openTradeV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
+          usersTokenAccount: fromTokenAccount.account!.address,
+          quoteMint: quoteToken,
+          feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && partnerDirectAta
@@ -1656,8 +1672,8 @@ export const openTradeV2 = async (
 
   if (splitTransactions) {
     const setUpInstructions = [
-      fromTokenAccount.instruction!,
-      toTokenAccount.instruction!,
+      // fromTokenAccount.instruction!,
+      // toTokenAccount.instruction!,
       partnerFeeRecipientVaultCreateIx,
       partnerFeeRecipientTokenAccountCreateIx,
       ...setupInstructions.map(deserializeInstruction),
@@ -1690,8 +1706,8 @@ export const openTradeV2 = async (
   }
 
   const allInstructions = [
-    fromTokenAccount.instruction!,
-    toTokenAccount.instruction!,
+    // fromTokenAccount.instruction!,
+    // toTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
     tradingOpenBorrowInstruction!,

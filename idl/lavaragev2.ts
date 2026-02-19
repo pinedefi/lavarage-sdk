@@ -434,6 +434,11 @@ export type Lavarage = {
           "isSigner": false
         },
         {
+          "name": "usersTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "collateralTokenProgram",
           "isMut": false,
           "isSigner": false
@@ -445,6 +450,16 @@ export type Lavarage = {
         },
         {
           "name": "collateralMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "quoteMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeRecipient",
           "isMut": false,
           "isSigner": false
         }
@@ -529,6 +544,11 @@ export type Lavarage = {
           "isSigner": false
         },
         {
+          "name": "usersTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "collateralTokenProgram",
           "isMut": false,
           "isSigner": false
@@ -540,6 +560,16 @@ export type Lavarage = {
         },
         {
           "name": "collateralMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "quoteMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeRecipient",
           "isMut": false,
           "isSigner": false
         }
@@ -2310,6 +2340,11 @@ export const IDL: Lavarage = {
           "isSigner": false
         },
         {
+          "name": "usersTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "collateralTokenProgram",
           "isMut": false,
           "isSigner": false
@@ -2321,6 +2356,16 @@ export const IDL: Lavarage = {
         },
         {
           "name": "collateralMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "quoteMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeRecipient",
           "isMut": false,
           "isSigner": false
         }
@@ -2405,6 +2450,11 @@ export const IDL: Lavarage = {
           "isSigner": false
         },
         {
+          "name": "usersTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "collateralTokenProgram",
           "isMut": false,
           "isSigner": false
@@ -2416,6 +2466,16 @@ export const IDL: Lavarage = {
         },
         {
           "name": "collateralMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "quoteMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "feeRecipient",
           "isMut": false,
           "isSigner": false
         }
