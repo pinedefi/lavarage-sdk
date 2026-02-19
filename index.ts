@@ -501,6 +501,10 @@ export const borrowV1 = async (
           clock: SYSVAR_CLOCK_PUBKEY,
           randomAccountAsId: randomSeed.publicKey.toBase58(),
           feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -529,6 +533,10 @@ export const borrowV1 = async (
           clock: SYSVAR_CLOCK_PUBKEY,
           randomAccountAsId: randomSeed.publicKey.toBase58(),
           feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey
@@ -731,6 +739,10 @@ export const borrowV2 = async (
             true,
             quoteTokenProgram
           ),
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -782,6 +794,10 @@ export const borrowV2 = async (
             true,
             quoteTokenProgram
           ),
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -1082,6 +1098,10 @@ export const openTradeV1 = async (
           clock: SYSVAR_CLOCK_PUBKEY,
           randomAccountAsId: randomSeed.publicKey.toBase58(),
           feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -1110,6 +1130,10 @@ export const openTradeV1 = async (
           clock: SYSVAR_CLOCK_PUBKEY,
           randomAccountAsId: randomSeed.publicKey.toBase58(),
           feeReceipient: "6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF",
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey
@@ -1526,6 +1550,10 @@ export const openTradeV2 = async (
             true,
             quoteTokenProgram
           ),
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && userVaultPda
@@ -1577,6 +1605,10 @@ export const openTradeV2 = async (
             true,
             quoteTokenProgram
           ),
+          positionTokenAccount: toTokenAccount.account!.address,
+          collateralTokenProgram: tokenProgram,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          collateralMint: offer.account.collateralType,
         })
         .remainingAccounts(
           partnerFeeRecipient && partnerFeeMarkupAsPkey && partnerDirectAta
