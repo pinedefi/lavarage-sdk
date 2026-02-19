@@ -577,6 +577,7 @@ export const borrowV1 = async (
 
   const allInstructions = [
     fromTokenAccount.instruction!,
+    toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
     tradingOpenBorrowInstruction!,
     openAddCollateralInstruction!,
@@ -1213,6 +1214,7 @@ export const openTradeV1 = async (
 
   const allInstructions = [
     fromTokenAccount.instruction!,
+    toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
@@ -1655,6 +1657,7 @@ export const openTradeV2 = async (
   if (splitTransactions) {
     const setUpInstructions = [
       fromTokenAccount.instruction!,
+      toTokenAccount.instruction!,
       partnerFeeRecipientVaultCreateIx,
       partnerFeeRecipientTokenAccountCreateIx,
       ...setupInstructions.map(deserializeInstruction),
@@ -1688,6 +1691,7 @@ export const openTradeV2 = async (
 
   const allInstructions = [
     fromTokenAccount.instruction!,
+    toTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
     tradingOpenBorrowInstruction!,
@@ -3060,7 +3064,7 @@ export const closeTradeV2 = async (
       partnerFeeRecipientVaultCreateIx,
       partnerFeeRecipientTokenAccountCreateIx,
       jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-      //createAssociatedTokenAccountInstruction,
+      createAssociatedTokenAccountInstruction,
     ].filter((i) => !!i);
 
     const allInstructions = [
@@ -3098,7 +3102,7 @@ export const closeTradeV2 = async (
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
     jupInstruction.instructions && platformFeeRecipientAccount?.instruction ? platformFeeRecipientAccount.instruction : null,
-    //createAssociatedTokenAccountInstruction,
+    createAssociatedTokenAccountInstruction,
     jupInstruction.instructions?.tokenLedgerInstruction
       ? deserializeInstruction(
         jupInstruction.instructions.tokenLedgerInstruction
