@@ -434,11 +434,6 @@ export type Lavarage = {
           "isSigner": false
         },
         {
-          "name": "usersTokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
           "name": "collateralTokenProgram",
           "isMut": false,
           "isSigner": false
@@ -540,11 +535,6 @@ export type Lavarage = {
         },
         {
           "name": "positionTokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "usersTokenAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -2340,11 +2330,6 @@ export const IDL: Lavarage = {
           "isSigner": false
         },
         {
-          "name": "usersTokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
           "name": "collateralTokenProgram",
           "isMut": false,
           "isSigner": false
@@ -2446,11 +2431,6 @@ export const IDL: Lavarage = {
         },
         {
           "name": "positionTokenAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "usersTokenAccount",
           "isMut": true,
           "isSigner": false
         },

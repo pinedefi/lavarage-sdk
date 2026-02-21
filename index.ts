@@ -746,7 +746,6 @@ export const borrowV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
-          usersTokenAccount: fromTokenAccount.account!.address,
           quoteMint: quoteToken,
           feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
@@ -804,7 +803,6 @@ export const borrowV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
-          usersTokenAccount: fromTokenAccount.account!.address,
           quoteMint: quoteToken,
           feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
@@ -1566,7 +1564,6 @@ export const openTradeV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
-          usersTokenAccount: fromTokenAccount.account!.address,
           quoteMint: quoteToken,
           feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
@@ -1624,7 +1621,6 @@ export const openTradeV2 = async (
           collateralTokenProgram: tokenProgram,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           collateralMint: offer.account.collateralType,
-          usersTokenAccount: fromTokenAccount.account!.address,
           quoteMint: quoteToken,
           feeRecipient: new PublicKey("6JfTobDvwuwZxZP6FR5JPmjdvQ4h4MovkEVH2FPsMSrF"),
         })
