@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/lavarage.json`.
  */
 export type Lavarage = {
-  "address": "3Ee9biPZkeKSgJY8WydcvBhvhtqaxjYNcke25PdBBzyB",
+  "address": "1avaAUcjccXCjSZzwUvB2gS3DzkkieV2Mw8CjdN65uu",
   "metadata": {
     "name": "lavarage",
     "version": "0.1.0",
