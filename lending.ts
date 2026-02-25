@@ -1,6 +1,6 @@
-import { BN, Instruction, Program } from "@coral-xyz/anchor";
-import { Lavarage } from "./idl/lavarage";
-import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
+import { BN, Program } from "@coral-xyz/anchor";
+import { Lavarage as LavarageSOL } from "./idl/lavarageSOL";
+import { Lavarage as LavarageUSDC } from "./idl/lavarageUSDC";
 import {
   ComputeBudgetProgram,
   Keypair,
@@ -104,7 +104,7 @@ export function getWithdrawalAccessListPDA(
 }
 
 async function createNodeWallet(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     operator: PublicKey;
     mint?: string; // Required for V2, optional for V1
@@ -129,7 +129,7 @@ async function createNodeWallet(
       lavarageProgram.programId
     );
     // V2 version
-    instructions.push(await (lavarageProgram as Program<LavarageV2>).methods
+    instructions.push(await (lavarageProgram as Program<LavarageUSDC>).methods
       .lpOperatorCreateNodeWallet(params.liquidationLtv)
       .accounts({
         nodeWallet: nodeWallet,
@@ -160,7 +160,7 @@ async function createNodeWallet(
     }));// Some code
     
     // V1 version
-    instructions.push(await (lavarageProgram as Program<Lavarage>).methods
+    instructions.push(await (lavarageProgram as Program<LavarageSOL>).methods
       .lpOperatorCreateNodeWallet()
       .accounts({
         nodeWallet: auxAccountPubkey,
@@ -216,7 +216,7 @@ async function createNodeWallet(
  * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
  */
 export async function depositFunds(
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   params: {
     nodeWallet: PublicKey;
     mint?: string; // Required for V2, optional for V1
@@ -327,7 +327,7 @@ export async function depositFunds(
  * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
  */
 export async function withdrawFundsV1(
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   params: {
     nodeWallet: PublicKey;
     funder: PublicKey;
@@ -397,7 +397,7 @@ export async function withdrawFundsV1(
  * @see {@link withdrawFunds} - Unified withdraw function for both V1 and V2
  */
 export async function withdrawFundsV2(
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageUSDC>,
   params: {
     nodeWallet: PublicKey;
     funder: PublicKey;
@@ -489,7 +489,7 @@ export async function withdrawFundsV2(
  */
 // Unified withdraw function that works with both V1 and V2
 export async function withdrawFunds(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     nodeWallet: PublicKey;
     funder: PublicKey;
@@ -502,7 +502,7 @@ export async function withdrawFunds(
 ): Promise<VersionedTransaction> {
   // Check if mint is provided to determine if this is V2
   if (params.mint) {
-    return withdrawFundsV2(lavarageProgram as Program<LavarageV2>, {
+    return withdrawFundsV2(lavarageProgram as Program<LavarageUSDC>, {
       nodeWallet: params.nodeWallet,
       funder: params.funder,
       mint: params.mint,
@@ -512,7 +512,7 @@ export async function withdrawFunds(
       computeBudgetMicroLamports: params.computeBudgetMicroLamports,
     });
   } else {
-    return withdrawFundsV1(lavarageProgram as Program<Lavarage>, {
+    return withdrawFundsV1(lavarageProgram as Program<LavarageSOL>, {
       nodeWallet: params.nodeWallet,
       funder: params.funder,
       amount: params.amount,
@@ -554,7 +554,7 @@ export async function withdrawFunds(
  * ```
  */
 export async function createOffer(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
@@ -699,7 +699,7 @@ export async function createOffer(
  * ```
  */
 export async function updateMaxExposure(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     nodeWallet: string;
@@ -763,7 +763,7 @@ export async function updateMaxExposure(
  * ```
  */
 export async function updateInterestRate(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     nodeWallet: string;
@@ -834,7 +834,7 @@ export async function updateInterestRate(
  * @see {@link updateMaxExposure} - Update only max exposure
  */
 export async function updateOffer(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     poolOwner: PublicKey;
@@ -937,7 +937,7 @@ export async function updateOffer(
  * ```
  */
 export async function updateMaxBorrow(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     nodeWallet: string;
@@ -973,7 +973,7 @@ export async function updateMaxBorrow(
 }
 
 export async function addToWithdrawalAccessList(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     nodeWallet: PublicKey;
     authority: PublicKey;
@@ -1009,7 +1009,7 @@ export async function addToWithdrawalAccessList(
 
 
 export async function removeFromWithdrawalAccessList(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     authority: PublicKey;
     nodeWallet: string; // This is a string in the IDL
@@ -1044,7 +1044,7 @@ export async function removeFromWithdrawalAccessList(
 
 
 export async function getWithdrawalAccessList(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     nodeWallet: string;
   }

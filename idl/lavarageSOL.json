@@ -1,0 +1,1852 @@
+{
+  "address": "CRSeeBqjDnm3UPefJ9gxrtngTsnQRhEJiTA345Q83X3v",
+  "metadata": {
+    "name": "lavarage",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "lp_operator_create_trading_pool",
+      "discriminator": [
+        182,
+        99,
+        232,
+        188,
+        202,
+        38,
+        71,
+        211
+      ],
+      "accounts": [
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "interest_rate",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_create_node_wallet",
+      "discriminator": [
+        193,
+        83,
+        139,
+        125,
+        229,
+        111,
+        150,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "lp_operator_fund_node_wallet",
+      "discriminator": [
+        204,
+        29,
+        191,
+        156,
+        11,
+        132,
+        135,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_withdraw_from_node_wallet",
+      "discriminator": [
+        162,
+        244,
+        237,
+        100,
+        96,
+        130,
+        60,
+        117
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "withdrawal_access_list"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_update_max_borrow",
+      "discriminator": [
+        47,
+        66,
+        56,
+        156,
+        203,
+        107,
+        44,
+        148
+      ],
+      "accounts": [
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_update_max_exposure",
+      "discriminator": [
+        43,
+        226,
+        68,
+        201,
+        78,
+        18,
+        155,
+        107
+      ],
+      "accounts": [
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "lp_operator_update_interest_rate",
+      "discriminator": [
+        25,
+        217,
+        30,
+        158,
+        210,
+        240,
+        173,
+        10
+      ],
+      "accounts": [
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "lp_liquidate",
+      "discriminator": [
+        36,
+        244,
+        70,
+        20,
+        135,
+        159,
+        86,
+        149
+      ],
+      "accounts": [
+        {
+          "name": "mint"
+        },
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "from_token_account",
+          "writable": true
+        },
+        {
+          "name": "to_token_account",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "oracle",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "position_size",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "lp_collect_interest",
+      "discriminator": [
+        181,
+        55,
+        21,
+        23,
+        53,
+        171,
+        73,
+        115
+      ],
+      "accounts": [
+        {
+          "name": "mint"
+        },
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "from_token_account",
+          "writable": true
+        },
+        {
+          "name": "to_token_account",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "oracle",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "price",
+          "type": "u128"
+        }
+      ]
+    },
+    {
+      "name": "trading_open_borrow",
+      "discriminator": [
+        53,
+        88,
+        1,
+        144,
+        58,
+        65,
+        182,
+        60
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "instructions"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        },
+        {
+          "name": "position_token_account",
+          "writable": true
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "collateral_mint"
+        },
+        {
+          "name": "users_token_account",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "position_size",
+          "type": "u64"
+        },
+        {
+          "name": "user_pays",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_open_borrow_with_referral",
+      "discriminator": [
+        126,
+        119,
+        109,
+        0,
+        131,
+        111,
+        251,
+        238
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "instructions"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        },
+        {
+          "name": "position_token_account",
+          "writable": true
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "collateral_mint"
+        },
+        {
+          "name": "users_token_account",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "position_size",
+          "type": "u64"
+        },
+        {
+          "name": "user_pays",
+          "type": "u64"
+        },
+        {
+          "name": "discount_bps",
+          "type": "u64"
+        },
+        {
+          "name": "referral_bps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_open_add_collateral",
+      "discriminator": [
+        21,
+        160,
+        90,
+        163,
+        189,
+        122,
+        164,
+        50
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "to_token_account",
+          "writable": true
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "max_interest_rate",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "trading_close_borrow_collateral",
+      "discriminator": [
+        160,
+        104,
+        113,
+        179,
+        42,
+        80,
+        8,
+        16
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "instructions"
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "from_token_account",
+          "writable": true
+        },
+        {
+          "name": "to_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "associated_token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "trading_data_accrued_interest",
+      "discriminator": [
+        227,
+        39,
+        217,
+        0,
+        88,
+        3,
+        25,
+        115
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
+      "name": "trading_close_repay_sol",
+      "discriminator": [
+        74,
+        90,
+        5,
+        111,
+        35,
+        171,
+        135,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "closing_position_size",
+          "type": "u64"
+        },
+        {
+          "name": "close_type",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_close_repay_sol_with_referral",
+      "discriminator": [
+        113,
+        176,
+        203,
+        24,
+        224,
+        228,
+        31,
+        35
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "closing_position_size",
+          "type": "u64"
+        },
+        {
+          "name": "close_type",
+          "type": "u64"
+        },
+        {
+          "name": "discount_bps",
+          "type": "u64"
+        },
+        {
+          "name": "referral_bps",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_close_partial_repay_sol",
+      "discriminator": [
+        29,
+        236,
+        62,
+        88,
+        170,
+        105,
+        68,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "clock"
+        },
+        {
+          "name": "random_account_as_id"
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "repay_percentage",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_close_position_account",
+      "discriminator": [
+        112,
+        178,
+        77,
+        58,
+        204,
+        138,
+        62,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "position_account",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "trading_close_pool_account",
+      "discriminator": [
+        226,
+        22,
+        159,
+        126,
+        37,
+        223,
+        57,
+        107
+      ],
+      "accounts": [
+        {
+          "name": "pool_account",
+          "writable": true
+        },
+        {
+          "name": "operator",
+          "signer": true
+        },
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "fee_receipient",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "sync_node_wallet",
+      "discriminator": [
+        185,
+        205,
+        57,
+        48,
+        112,
+        135,
+        240,
+        250
+      ],
+      "accounts": [
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "trading_create_tp_delegate",
+      "discriminator": [
+        174,
+        200,
+        59,
+        127,
+        100,
+        216,
+        183,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true
+        },
+        {
+          "name": "original_operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "delegated_account"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "lower_threshold",
+          "type": "u64"
+        },
+        {
+          "name": "delegate_operator",
+          "type": "pubkey"
+        },
+        {
+          "name": "partial_percentage",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_remove_tp_delegate",
+      "discriminator": [
+        88,
+        18,
+        149,
+        143,
+        124,
+        43,
+        68,
+        178
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true
+        },
+        {
+          "name": "original_operator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "delegated_account"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "delegate_execute_tp",
+      "discriminator": [
+        207,
+        251,
+        148,
+        38,
+        214,
+        153,
+        54,
+        242
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true
+        },
+        {
+          "name": "delegate_operator",
+          "signer": true
+        },
+        {
+          "name": "account",
+          "writable": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "position_token_account",
+          "writable": true
+        },
+        {
+          "name": "delegate_token_account",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "mint"
+        }
+      ],
+      "args": [
+        {
+          "name": "seed",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "delegate_close_position",
+      "discriminator": [
+        100,
+        249,
+        236,
+        96,
+        249,
+        195,
+        17,
+        157
+      ],
+      "accounts": [
+        {
+          "name": "delegate",
+          "writable": true
+        },
+        {
+          "name": "delegate_operator",
+          "signer": true
+        },
+        {
+          "name": "account",
+          "writable": true
+        },
+        {
+          "name": "trading_pool",
+          "writable": true
+        },
+        {
+          "name": "node_wallet",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "node_wallet_token_account",
+          "writable": true
+        },
+        {
+          "name": "delegate_token_account",
+          "writable": true
+        },
+        {
+          "name": "fee_token_account",
+          "writable": true
+        },
+        {
+          "name": "profit_token_account",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        },
+        {
+          "name": "qt_mint"
+        }
+      ],
+      "args": [
+        {
+          "name": "closing_position_size",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "trading_management_split_position",
+      "discriminator": [
+        230,
+        180,
+        252,
+        200,
+        8,
+        246,
+        131,
+        54
+      ],
+      "accounts": [
+        {
+          "name": "original_position",
+          "writable": true
+        },
+        {
+          "name": "new_position_one",
+          "writable": true
+        },
+        {
+          "name": "new_position_two",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "original_position_token_account",
+          "writable": true
+        },
+        {
+          "name": "new_position_token_account_one",
+          "writable": true
+        },
+        {
+          "name": "new_position_token_account_two",
+          "writable": true
+        },
+        {
+          "name": "trader",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "split_ratio_bps",
+          "type": "u64"
+        },
+        {
+          "name": "seed1",
+          "type": "pubkey"
+        },
+        {
+          "name": "seed2",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "init_withdrawal_access_list",
+      "discriminator": [
+        118,
+        110,
+        194,
+        104,
+        220,
+        145,
+        69,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "withdrawal_access_list",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "add_withdrawal_access",
+      "discriminator": [
+        45,
+        247,
+        214,
+        153,
+        224,
+        115,
+        136,
+        178
+      ],
+      "accounts": [
+        {
+          "name": "withdrawal_access_list",
+          "writable": true
+        },
+        {
+          "name": "node_wallet"
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "to_pubkey",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "remove_withdrawal_access",
+      "discriminator": [
+        218,
+        186,
+        7,
+        130,
+        180,
+        40,
+        111,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "withdrawal_access_list",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "from_pubkey",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Delegate",
+      "discriminator": [
+        92,
+        145,
+        166,
+        111,
+        11,
+        38,
+        38,
+        247
+      ]
+    },
+    {
+      "name": "NodeWallet",
+      "discriminator": [
+        48,
+        117,
+        214,
+        115,
+        125,
+        23,
+        94,
+        246
+      ]
+    },
+    {
+      "name": "Pool",
+      "discriminator": [
+        241,
+        154,
+        109,
+        4,
+        17,
+        177,
+        109,
+        188
+      ]
+    },
+    {
+      "name": "Position",
+      "discriminator": [
+        170,
+        188,
+        143,
+        228,
+        122,
+        64,
+        247,
+        208
+      ]
+    },
+    {
+      "name": "WithdrawalAccessList",
+      "discriminator": [
+        29,
+        144,
+        191,
+        76,
+        108,
+        26,
+        73,
+        234
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "PositionCloseEvent",
+      "discriminator": [
+        85,
+        5,
+        166,
+        100,
+        218,
+        87,
+        230,
+        129
+      ]
+    },
+    {
+      "name": "PositionOpenEvent",
+      "discriminator": [
+        84,
+        127,
+        249,
+        160,
+        99,
+        95,
+        120,
+        120
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "AddressMismatch",
+      "msg": "Address Mismatch"
+    },
+    {
+      "code": 6001,
+      "name": "ProgramMismatch",
+      "msg": "Program Mismatch"
+    },
+    {
+      "code": 6002,
+      "name": "MissingRepay",
+      "msg": "Missing Repay"
+    },
+    {
+      "code": 6003,
+      "name": "IncorrectOwner",
+      "msg": "Incorrect Owner"
+    },
+    {
+      "code": 6004,
+      "name": "IncorrectProgramAuthority",
+      "msg": "Incorrect Program Authority"
+    },
+    {
+      "code": 6005,
+      "name": "CannotBorrowBeforeRepay",
+      "msg": "Cannot Borrow Before Repay"
+    },
+    {
+      "code": 6006,
+      "name": "UnknownInstruction",
+      "msg": "Unknown Instruction"
+    },
+    {
+      "code": 6007,
+      "name": "ExpectedCollateralNotEnough",
+      "msg": "Expected collateral not enough"
+    },
+    {
+      "code": 6008,
+      "name": "ForTesting",
+      "msg": "TestError"
+    },
+    {
+      "code": 6009,
+      "name": "BlacklistedAccount",
+      "msg": "Account is blacklisted"
+    },
+    {
+      "code": 6010,
+      "name": "CloseStatusRecallTimestampZero",
+      "msg": "Close status recall timestamp is zero"
+    }
+  ],
+  "types": [
+    {
+      "name": "WithdrawalAccessEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "from_pubkey",
+            "type": "string"
+          },
+          {
+            "name": "to_pubkey",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LendingErrors",
+      "docs": [
+        "Errors for this program"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "AddressMismatch"
+          },
+          {
+            "name": "ProgramMismatch"
+          },
+          {
+            "name": "MissingRepay"
+          },
+          {
+            "name": "IncorrectOwner"
+          },
+          {
+            "name": "IncorrectProgramAuthority"
+          },
+          {
+            "name": "CannotBorrowBeforeRepay"
+          },
+          {
+            "name": "UnknownInstruction"
+          },
+          {
+            "name": "ExpectedCollateralNotEnough"
+          },
+          {
+            "name": "AccessEntryAlreadyExists"
+          },
+          {
+            "name": "AccessEntryNotFound"
+          },
+          {
+            "name": "UnauthorizedWithdrawal"
+          },
+          {
+            "name": "AccountAlreadyInitialized"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ErrorCode",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "InvalidSignature"
+          },
+          {
+            "name": "InvalidOracle"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ErrorCode",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "InvalidSplitRatio"
+          },
+          {
+            "name": "PositionsNotMergeable"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ErrorCode",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "OnlyDelegateOperator"
+          },
+          {
+            "name": "AddressMismatch"
+          },
+          {
+            "name": "InvalidDelegateType"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionCloseType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "ClosedByUser"
+          },
+          {
+            "name": "Liquidated"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Delegate",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "delegate_type",
+            "type": "u8"
+          },
+          {
+            "name": "field1",
+            "type": "u64"
+          },
+          {
+            "name": "field2",
+            "type": "u64"
+          },
+          {
+            "name": "field3",
+            "type": "u64"
+          },
+          {
+            "name": "field4",
+            "type": "pubkey"
+          },
+          {
+            "name": "field5",
+            "type": "pubkey"
+          },
+          {
+            "name": "original_operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "delegate_operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "account",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NodeWallet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "total_funds",
+            "type": "u64"
+          },
+          {
+            "name": "total_borrowed",
+            "type": "u64"
+          },
+          {
+            "name": "maintenance_ltv",
+            "type": "u8"
+          },
+          {
+            "name": "liquidation_ltv",
+            "type": "u8"
+          },
+          {
+            "name": "node_operator",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "interest_rate",
+            "type": "u8"
+          },
+          {
+            "name": "collateral_type",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_borrow",
+            "type": "u64"
+          },
+          {
+            "name": "node_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_exposure",
+            "type": "u64"
+          },
+          {
+            "name": "current_exposure",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Position",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "close_status_recall_timestamp",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_paid",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "seed",
+            "type": "pubkey"
+          },
+          {
+            "name": "close_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "closing_position_size",
+            "type": "u64"
+          },
+          {
+            "name": "interest_rate",
+            "type": "u8"
+          },
+          {
+            "name": "last_interest_collect",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawalAccessList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "access_entries",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "WithdrawalAccessEntry"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionCloseEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_paid",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "open_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "close_type",
+            "type": "u8"
+          },
+          {
+            "name": "close_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "closing_position_size",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionOpenEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "user_paid",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "open_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ]
+}
