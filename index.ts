@@ -13,9 +13,10 @@
  */
 
 import { BN, Program, ProgramAccount } from "@coral-xyz/anchor";
-import { Lavarage } from "./idl/lavarage";
-import { Lavarage as LavarageV2 } from "./idl/lavaragev2";
-import { UserVault, IDL as userVaultIDL } from "./idl/referralVault";
+import { Lavarage as LavarageSOL } from "./idl/lavarageSOL";
+import { Lavarage as LavarageUSDC } from "./idl/lavarageUSDC";
+import { UserVault } from "./idl/userVault";
+import userVaultIDL from "./idl/user_vault.json";
 import bs58 from "bs58";
 import {
   AccountInfo,
@@ -26,6 +27,7 @@ import {
   SystemProgram,
   SYSVAR_CLOCK_PUBKEY,
   SYSVAR_INSTRUCTIONS_PUBKEY,
+  SYSVAR_SLOT_HASHES_PUBKEY,
   Transaction,
   TransactionInstruction,
   TransactionMessage,
@@ -38,10 +40,15 @@ import {
   createTransferInstruction,
   getAccount,
   getAssociatedTokenAddressSync,
+  NATIVE_MINT,
   TOKEN_PROGRAM_ID,
   TokenAccountNotFoundError,
   TokenInvalidAccountOwnerError,
 } from "@solana/spl-token";
+import { queuePubkey, USDC_MINT } from "./constants";
+import { getOracleQuoteForCollateralType, getOracleQuoteForFeedId } from "./switchboard";
+import { u8ArrayToString } from "./utils";
+import { ApiKeys, getUpdateOracleIxs } from "./crossbar";
 
 export * from "./evm";
 export * as lending from "./lending";
@@ -54,8 +61,6 @@ type OptionalRPCResults = {
   quoteMintAccountInfo?: AccountInfo<Buffer>;
 }
 const REFFERAL_VAULT_PROGRAM_ID = new PublicKey("FFe8xWs9iBdWB6vsxg8yBLirZHsbACFNbXqAM4K3fPPB");
-
-
 
 /**
  * Derives a Program Derived Address (PDA) for the given seed(s) and program ID
@@ -100,7 +105,7 @@ export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
  */
 
 export function getPositionAccountPDA(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   offer: ProgramAccount,
   seed: PublicKey
 ) {
@@ -130,7 +135,7 @@ export function getPositionAccountPDA(
  */
 
 async function getTokenAccountOrCreateIfNotExists(
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   ownerPublicKey: PublicKey,
   tokenAddress: PublicKey,
   tokenProgram?: PublicKey,
@@ -173,12 +178,12 @@ async function getTokenAccountOrCreateIfNotExists(
  * Re-exports all types and interfaces from the Lavarage V1 IDL
  * @group Solana
  */
-export * from "./idl/lavarage";
+export * from "./idl/lavarageSOL";
 /**
  * Namespace containing all types and interfaces from the Lavarage V2 IDL
  * @group Solana
  */
-export * as IDLV2 from "./idl/lavaragev2";
+export * as IDLV2 from "./idl/lavarageUSDC";
 /**
  * Fetches all available lending offers from the Lavarage protocol
  * 
@@ -202,7 +207,7 @@ export * as IDLV2 from "./idl/lavaragev2";
  */
 
 export const getOffers = (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>
 ) => {
   return lavarageProgram.account.pool.all();
 };
@@ -237,7 +242,7 @@ export const getOffers = (
  */
 
 export const getOpenPositions = (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>
 ) => {
   return lavarageProgram.account.position.all([
     { dataSize: 178 },
@@ -275,7 +280,7 @@ export const getOpenPositions = (
  */
 
 export const getClosedPositions = async (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>
 ) => {
   const value = BigInt(9997);
   const valueBuffer = Buffer.alloc(8);
@@ -352,7 +357,7 @@ export const getClosedPositions = async (
  */
 
 export const getLiquidatedPositions = (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>
 ) => {
   const value = BigInt(9999);
   const valueBuffer = Buffer.alloc(8);
@@ -403,22 +408,24 @@ export const getLiquidatedPositions = (
  */
 
 export const getAllPositions = (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>
 ) => {
   return lavarageProgram.account.position.all([{ dataSize: 178 }]);
 };
 
 export const borrowV1 = async (
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   offer: ProgramAccount<{
     nodeWallet: PublicKey;
     interestRate: number;
     collateralType: PublicKey;
+    feedId: number[];
   }>,
   marginSOL: BN,
   leverage: number,
   randomSeed: Keypair,
   tokenProgram: PublicKey,
+  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -483,9 +490,16 @@ export const borrowV1 = async (
     }
   }
 
+  const updateOracleInstructions = await getUpdateOracleIxs(
+    // @ts-expect-error IDL mismatch
+    lavarageProgram,
+    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
+    apiKeys
+  );
+
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
-        .tradingOpenBorrowWithReferral(
+        .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
           new BN(discountBps),
@@ -558,6 +572,10 @@ export const borrowV1 = async (
         )
         .instruction();
 
+  const baseOracleQuote = getOracleQuoteForFeedId(u8ArrayToString(offer.account.feedId));
+
+  const quoteOracleQuote = getOracleQuoteForCollateralType(NATIVE_MINT);
+
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate)
     .accountsStrict({
@@ -568,8 +586,12 @@ export const borrowV1 = async (
       systemProgram: SystemProgram.programId,
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
-      tokenProgram: tokenProgram,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      baseOracleQuote,
+      quoteOracleQuote,
+      clockSysvar: SYSVAR_CLOCK_PUBKEY,
+      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+      oracleQueue: queuePubkey,
+      slotHashesSysvar: SYSVAR_SLOT_HASHES_PUBKEY,
     })
     .instruction();
 
@@ -581,6 +603,7 @@ export const borrowV1 = async (
     // fromTokenAccount.instruction!,
     // toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
+    ...updateOracleInstructions,
     tradingOpenBorrowInstruction!,
     openAddCollateralInstruction!,
     computeBudgetMicroLamports ? computeFeeIx : undefined,
@@ -598,17 +621,19 @@ export const borrowV1 = async (
 };
 
 export const borrowV2 = async (
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageUSDC>,
   offer: ProgramAccount<{
     nodeWallet: PublicKey;
     interestRate: number;
     collateralType: PublicKey;
+    feedId: number[];
   }>,
   marginSOL: BN,
   leverage: number,
   randomSeed: Keypair,
   quoteToken: PublicKey,
   tokenProgram: PublicKey,
+  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -706,9 +731,16 @@ export const borrowV2 = async (
     }
   }
 
+  const updateOracleInstructions = await getUpdateOracleIxs(
+    // @ts-expect-error IDL mismatch
+    lavarageProgram,
+    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
+    apiKeys
+  );
+
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
-        .tradingOpenBorrowWithReferral(
+        .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
           new BN(discountBps),
@@ -829,6 +861,10 @@ export const borrowV2 = async (
         )
         .instruction();
 
+  const baseOracleQuote = getOracleQuoteForFeedId(u8ArrayToString(offer.account.feedId));
+
+  const quoteOracleQuote = getOracleQuoteForCollateralType(USDC_MINT);
+
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
     .accountsStrict({
@@ -841,6 +877,12 @@ export const borrowV2 = async (
       randomAccountAsId: randomSeed.publicKey.toBase58(),
       tokenProgram: tokenProgram,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      baseOracleQuote,
+      quoteOracleQuote,
+      clockSysvar: SYSVAR_CLOCK_PUBKEY,
+      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+      oracleQueue: queuePubkey,
+      slotHashesSysvar: SYSVAR_SLOT_HASHES_PUBKEY,
     })
     .instruction();
 
@@ -852,6 +894,7 @@ export const borrowV2 = async (
     fromTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
+    ...updateOracleInstructions,
     tradingOpenBorrowInstruction!,
     openAddCollateralInstruction!,
     computeBudgetMicroLamports ? computeFeeIx : undefined,
@@ -925,11 +968,12 @@ export const borrowV2 = async (
  */
 
 export const openTradeV1 = async (
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   offer: ProgramAccount<{
     nodeWallet: PublicKey;
     interestRate: number;
     collateralType: PublicKey;
+    feedId: number[];
   }>,
   jupInstruction: {
     instructions: {
@@ -942,6 +986,7 @@ export const openTradeV1 = async (
   leverage: number,
   randomSeed: Keypair,
   tokenProgram: PublicKey,
+  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -952,7 +997,7 @@ export const openTradeV1 = async (
   optionalRPCResults?: OptionalRPCResults,
 ) => {
   let partnerFeeMarkupAsPkey;
-  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, lavarageProgram.provider);
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
     feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
@@ -1087,9 +1132,16 @@ export const openTradeV1 = async (
     }
   }
 
+  const updateOracleInstructions = await getUpdateOracleIxs(
+    // @ts-expect-error IDL mismatch
+    lavarageProgram,
+    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
+    apiKeys
+  );
+
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
-        .tradingOpenBorrowWithReferral(
+        .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
           new BN(discountBps),
@@ -1162,6 +1214,10 @@ export const openTradeV1 = async (
         )
         .instruction();
 
+  const baseOracleQuote = getOracleQuoteForFeedId(u8ArrayToString(offer.account.feedId));
+
+  const quoteOracleQuote = getOracleQuoteForCollateralType(NATIVE_MINT);
+
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate)
     .accountsStrict({
@@ -1172,8 +1228,12 @@ export const openTradeV1 = async (
       systemProgram: SystemProgram.programId,
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
-      tokenProgram: tokenProgram,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      baseOracleQuote,
+      quoteOracleQuote,
+      clockSysvar: SYSVAR_CLOCK_PUBKEY,
+      slotHashesSysvar: SYSVAR_SLOT_HASHES_PUBKEY,
+      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+      oracleQueue: queuePubkey,
     })
     .instruction();
 
@@ -1224,6 +1284,7 @@ export const openTradeV1 = async (
     // fromTokenAccount.instruction!,
     // toTokenAccount.instruction!,
     partnerFeeRecipientCreateIx,
+    ...updateOracleInstructions,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
     openAddCollateralInstruction!,
@@ -1303,11 +1364,12 @@ export const openTradeV1 = async (
  */
 
 export const openTradeV2 = async (
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageUSDC>,
   offer: ProgramAccount<{
     nodeWallet: PublicKey;
     interestRate: number;
     collateralType: PublicKey;
+    feedId: number[];
   }>,
   jupInstruction: {
     instructions: {
@@ -1321,6 +1383,7 @@ export const openTradeV2 = async (
   randomSeed: Keypair,
   quoteToken: PublicKey,
   tokenProgram: PublicKey,
+  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -1331,7 +1394,7 @@ export const openTradeV2 = async (
   optionalRPCResults?: OptionalRPCResults,
 ) => {
   let partnerFeeMarkupAsPkey;
-  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, lavarageProgram.provider);
   
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
@@ -1524,9 +1587,16 @@ export const openTradeV2 = async (
 
   
 
+  const updateOracleInstructions = await getUpdateOracleIxs(
+    // @ts-expect-error IDL mismatch
+    lavarageProgram,
+    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
+    apiKeys
+  );
+
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
-        .tradingOpenBorrowWithReferral(
+        .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
           new BN(discountBps),
@@ -1642,6 +1712,10 @@ export const openTradeV2 = async (
         )
         .instruction();
 
+  const baseOracleQuote = getOracleQuoteForFeedId(u8ArrayToString(offer.account.feedId));
+
+  const quoteOracleQuote = getOracleQuoteForCollateralType(USDC_MINT);
+
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
     .accountsStrict({
@@ -1654,6 +1728,12 @@ export const openTradeV2 = async (
       randomAccountAsId: randomSeed.publicKey.toBase58(),
       tokenProgram: tokenProgram,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      baseOracleQuote,
+      quoteOracleQuote,
+      clockSysvar: SYSVAR_CLOCK_PUBKEY,
+      slotHashesSysvar: SYSVAR_SLOT_HASHES_PUBKEY,
+      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+      oracleQueue: queuePubkey,
     })
     .instruction();
 
@@ -1676,6 +1756,7 @@ export const openTradeV2 = async (
     ].filter(Boolean) as TransactionInstruction[];
 
     const allInstructions = [
+      ...updateOracleInstructions,
       tradingOpenBorrowInstruction!,
       deserializeInstruction(swapInstructionPayload), ,
       openAddCollateralInstruction!,
@@ -1767,7 +1848,7 @@ export const openTradeV2 = async (
  */
 
 export const createTpDelegate = async (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -1866,7 +1947,7 @@ export const createTpDelegate = async (
  */
 
 export const modifyTpDelegate = async (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -1969,7 +2050,7 @@ export const modifyTpDelegate = async (
  */
 
 export const removeTpDelegate = async (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -2034,7 +2115,7 @@ export const removeTpDelegate = async (
  */
 
 export const partialRepayV1 = async (
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -2095,7 +2176,7 @@ export const partialRepayV1 = async (
  * @see {@link partialRepayV1} - The V1 version supporting SOL as quote token
  */
 export const partialRepayV2 = async (
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageUSDC>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -2184,7 +2265,7 @@ export const partialRepayV2 = async (
  * @see {@link partialRepayV1} - Partial repayments on V1 
  */
 export const closeTradeV1 = async (
-  lavarageProgram: Program<Lavarage>,
+  lavarageProgram: Program<LavarageSOL>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -2215,7 +2296,7 @@ export const closeTradeV1 = async (
   referralBps?: number,
 ) => {
   let partnerFeeMarkupAsPkey;
-  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, lavarageProgram.provider);
   
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
@@ -2342,7 +2423,6 @@ export const closeTradeV1 = async (
       trader: lavarageProgram.provider.publicKey!,
       tokenProgram: tokenProgram!,
       randomAccountAsId: position.account.seed,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     })
     .instruction();
 
@@ -2351,7 +2431,7 @@ export const closeTradeV1 = async (
   if (jupInstruction.instructions == undefined) {
     repaySolIx = useReferral
       ? await lavarageProgram.methods
-          .tradingCloseRepaySolWithReferral(
+          .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9997),
             new BN(discountBps),
@@ -2414,7 +2494,7 @@ export const closeTradeV1 = async (
   } else {
     repaySolIx = useReferral
       ? await lavarageProgram.methods
-          .tradingCloseRepaySolWithReferral(
+          .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9998),
             new BN(discountBps),
@@ -2613,7 +2693,7 @@ export const closeTradeV1 = async (
  * @see {@link partialRepayV2} - Partial repay a V2 position 
  */
 export const closeTradeV2 = async (
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageUSDC>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -2645,7 +2725,7 @@ export const closeTradeV2 = async (
   referralBps?: number,
 ) => {
   let partnerFeeMarkupAsPkey;
-  const referralVaultProgram = new Program<UserVault>(userVaultIDL, REFFERAL_VAULT_PROGRAM_ID, lavarageProgram.provider);
+  const referralVaultProgram = new Program<UserVault>(userVaultIDL, lavarageProgram.provider);
   
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
@@ -2814,7 +2894,7 @@ export const closeTradeV2 = async (
   if (jupInstruction.instructions == undefined) {
     repaySolIx = useReferral
       ? await lavarageProgram.methods
-          .tradingCloseRepaySolWithReferral(
+          .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9997),
             new BN(discountBps),
@@ -2925,7 +3005,7 @@ export const closeTradeV2 = async (
   } else {
     repaySolIx = useReferral
       ? await lavarageProgram.methods
-          .tradingCloseRepaySolWithReferral(
+          .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9998),
             new BN(discountBps),
@@ -3170,7 +3250,7 @@ export const closeTradeV2 = async (
  * @see {@link removeTpDelegate} - Remove take-profit settings
  */
 export const getDelegateAccounts = async (
-  lavarageProgram: Program<Lavarage> | Program<LavarageV2>,
+  lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   userPubKey?: PublicKey
 ) => {
   const delegateAccounts = await lavarageProgram.account.delegate.all(
@@ -3239,7 +3319,7 @@ const getQuoteCurrencySpecificAddressLookupTable = (quoteCurrency: string) => {
  * @see {@link mergePositionV2} - Merge two positions into one
  */
 export const splitPositionV2 = async (
-  lavarageProgram: Program<LavarageV2> | Program<Lavarage>,
+  lavarageProgram: Program<LavarageUSDC> | Program<LavarageSOL>,
   position: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
@@ -3399,7 +3479,7 @@ export const splitPositionV2 = async (
  * @see {@link splitPositionV2} - Split a position into two
  */
 export const mergePositionV2 = async (
-  lavarageProgram: Program<LavarageV2>,
+  lavarageProgram: Program<LavarageUSDC>,
   position1: ProgramAccount<{
     pool: PublicKey;
     seed: PublicKey;
