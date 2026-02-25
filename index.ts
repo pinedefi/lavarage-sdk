@@ -41,6 +41,10 @@ import {
   NATIVE_MINT,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { queuePubkey, USDC_MINT } from "./constants";
+import { getOracleQuoteForCollateralType, getOracleQuoteForFeedId } from "./switchboard";
+import { u8ArrayToString } from "./utils";
+import { ApiKeys, getUpdateOracleIxs } from "./crossbar";
 
 export * from "./evm";
 export * as lending from "./lending";
@@ -600,12 +604,14 @@ export const borrowV2 = async (
     nodeWallet: PublicKey;
     interestRate: number;
     collateralType: PublicKey;
+    feedId: number[];
   }>,
   marginSOL: BN,
   leverage: number,
   randomSeed: Keypair,
   quoteToken: PublicKey,
   tokenProgram: PublicKey,
+  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -703,9 +709,16 @@ export const borrowV2 = async (
     }
   }
 
+  const updateOracleInstructions = await getUpdateOracleIxs(
+    // @ts-expect-error IDL mismatch
+    lavarageProgram,
+    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
+    apiKeys
+  );
+
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
-        .tradingOpenBorrowWithReferral(
+        .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
           new BN(discountBps),
@@ -826,6 +839,10 @@ export const borrowV2 = async (
         )
         .instruction();
 
+  const baseOracleQuote = getOracleQuoteForFeedId(u8ArrayToString(offer.account.feedId));
+
+  const quoteOracleQuote = getOracleQuoteForCollateralType(USDC_MINT);
+
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
     .accountsStrict({
@@ -837,7 +854,12 @@ export const borrowV2 = async (
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
       tokenProgram: tokenProgram,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      baseOracleQuote,
+      quoteOracleQuote,
+      clockSysvar: SYSVAR_CLOCK_PUBKEY,
+      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+      oracleQueue: queuePubkey,
+      slotHashesSysvar: SYSVAR_SLOT_HASHES_PUBKEY,
     })
     .instruction();
 
@@ -849,6 +871,7 @@ export const borrowV2 = async (
     fromTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
+    ...updateOracleInstructions,
     tradingOpenBorrowInstruction!,
     openAddCollateralInstruction!,
     computeBudgetMicroLamports ? computeFeeIx : undefined,
@@ -1305,6 +1328,7 @@ export const openTradeV2 = async (
     nodeWallet: PublicKey;
     interestRate: number;
     collateralType: PublicKey;
+    feedId: number[];
   }>,
   jupInstruction: {
     instructions: {
@@ -1318,6 +1342,7 @@ export const openTradeV2 = async (
   randomSeed: Keypair,
   quoteToken: PublicKey,
   tokenProgram: PublicKey,
+  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -1521,9 +1546,16 @@ export const openTradeV2 = async (
 
   
 
+  const updateOracleInstructions = await getUpdateOracleIxs(
+    // @ts-expect-error IDL mismatch
+    lavarageProgram,
+    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
+    apiKeys
+  );
+
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
-        .tradingOpenBorrowWithReferral(
+        .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
           new BN(discountBps),
@@ -1639,6 +1671,10 @@ export const openTradeV2 = async (
         )
         .instruction();
 
+  const baseOracleQuote = getOracleQuoteForFeedId(u8ArrayToString(offer.account.feedId));
+
+  const quoteOracleQuote = getOracleQuoteForCollateralType(USDC_MINT);
+
   const openAddCollateralInstruction = await lavarageProgram.methods
     .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
     .accountsStrict({
@@ -1650,7 +1686,12 @@ export const openTradeV2 = async (
       positionAccount,
       randomAccountAsId: randomSeed.publicKey.toBase58(),
       tokenProgram: tokenProgram,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      baseOracleQuote,
+      quoteOracleQuote,
+      clockSysvar: SYSVAR_CLOCK_PUBKEY,
+      slotHashesSysvar: SYSVAR_SLOT_HASHES_PUBKEY,
+      instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
+      oracleQueue: queuePubkey,
     })
     .instruction();
 
@@ -1673,6 +1714,7 @@ export const openTradeV2 = async (
     ].filter(Boolean) as TransactionInstruction[];
 
     const allInstructions = [
+      ...updateOracleInstructions,
       tradingOpenBorrowInstruction!,
       deserializeInstruction(swapInstructionPayload), ,
       openAddCollateralInstruction!,
@@ -2811,7 +2853,7 @@ export const closeTradeV2 = async (
   if (jupInstruction.instructions == undefined) {
     repaySolIx = useReferral
       ? await lavarageProgram.methods
-          .tradingCloseRepaySolWithReferral(
+          .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9997),
             new BN(discountBps),
@@ -2922,7 +2964,7 @@ export const closeTradeV2 = async (
   } else {
     repaySolIx = useReferral
       ? await lavarageProgram.methods
-          .tradingCloseRepaySolWithReferral(
+          .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
             new BN(9998),
             new BN(discountBps),

@@ -19,6 +19,7 @@ import {
   getMint,
 } from "@solana/spl-token";
 import { getPda } from "./index";
+import { stringToU8Array } from "./utils";
 
 /**
  * Derives a node wallet PDA for lending operations
@@ -565,7 +566,8 @@ export async function createOffer(
     interestRate: number;
     maxExposure: number;
     computeBudgetMicroLamports?: number;
-    maxBorrow?: number;
+    openLtv?: number;
+    feedId: string;
   }
 ): Promise<VersionedTransaction> {
   
@@ -615,7 +617,7 @@ export async function createOffer(
 
   // Both V1 and V2 lpOperatorCreateTradingPool require mint parameter
   const instruction = await lavarageProgram.methods
-    .lpOperatorCreateTradingPool(params.interestRate)
+    .lpOperatorCreateTradingPool(params.interestRate, stringToU8Array(params.feedId))
     .accounts({
       tradingPool: params.tradingPool,
       operator: params.poolOwner,
@@ -626,7 +628,12 @@ export async function createOffer(
     .instruction();
 
   const updateMaxExposureInstruction = await lavarageProgram.methods
-    .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
+    .lpOperatorUpdateTradingPool({
+      maxExposure: new BN(params.maxExposure),
+      interestRate: null,
+      openLtv: null,
+      feedId: null,
+    })
     .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: nodeWalletPubKey,
@@ -645,9 +652,14 @@ export async function createOffer(
     lamports: 0.3 * LAMPORTS_PER_SOL
   });
 
-  const updateMaxBorrowInstruction = await lavarageProgram.methods
-    .lpOperatorUpdateMaxBorrow(new BN(params.maxBorrow ?? 0))
-    .accountsStrict({
+  const updateOpenLtvInstruction = await lavarageProgram.methods
+    .lpOperatorUpdateTradingPool({
+      maxExposure: null,
+      interestRate: null,
+      openLtv: new BN(params.openLtv ?? 0),
+      feedId: null,
+    })
+    .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: nodeWalletPubKey,
       operator: params.poolOwner,
@@ -662,7 +674,7 @@ export async function createOffer(
       ...createNodeWalletInstruction,
       instruction,
       updateMaxExposureInstruction,
-      params.maxBorrow ? updateMaxBorrowInstruction : undefined,
+      params.openLtv ? updateOpenLtvInstruction : undefined,
       computeFeeIx,
     ].filter(Boolean) as TransactionInstruction[],
   }).compileToV0Message();
@@ -712,7 +724,12 @@ export async function updateMaxExposure(
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
   const instruction = await lavarageProgram.methods
-    .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
+    .lpOperatorUpdateTradingPool({
+      maxExposure: new BN(params.maxExposure),
+      interestRate: null,
+      openLtv: null,
+      feedId: null,
+    })
     .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
@@ -776,7 +793,12 @@ export async function updateInterestRate(
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
   const instruction = await lavarageProgram.methods
-    .lpOperatorUpdateInterestRate(params.interestRate)
+    .lpOperatorUpdateTradingPool({
+      maxExposure: null,
+      interestRate: new BN(params.interestRate),
+      openLtv: null,
+      feedId: null,
+    })
     .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
@@ -869,7 +891,12 @@ export async function updateOffer(
 
   // Update max exposure instruction
   const updateMaxExposureInstruction = await lavarageProgram.methods
-    .lpOperatorUpdateMaxExposure(new BN(params.maxExposure))
+    .lpOperatorUpdateTradingPool({
+      maxExposure: new BN(params.maxExposure),
+      interestRate: null,
+      openLtv: null,
+      feedId: null,
+    })
     .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
@@ -880,7 +907,12 @@ export async function updateOffer(
 
   // Update interest rate instruction
   const updateInterestRateInstruction = await lavarageProgram.methods
-    .lpOperatorUpdateInterestRate(params.interestRate)
+    .lpOperatorUpdateTradingPool({
+      maxExposure: null,
+      interestRate: new BN(params.interestRate),
+      openLtv: null,
+      feedId: null,
+    })
     .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
@@ -909,7 +941,7 @@ export async function updateOffer(
 }
 
 /**
- * Updates the maximum borrow limit for a trading pool
+ * Updates the open LTV for a trading pool
  * 
  * @group Lending
  * @category Operations
@@ -919,30 +951,30 @@ export async function updateOffer(
  * @param params.tradingPool - The trading pool PDA
  * @param params.nodeWallet - The node wallet address
  * @param params.oracle - The oracle public key authorized to update
- * @param params.maxBorrow - New maximum borrow limit
+ * @param params.openLtv - New open LTV
  * @param params.computeBudgetMicroLamports - Optional compute budget for priority fees
  * 
- * @returns Transaction to update max borrow limit
+ * @returns Transaction to update open LTV
  * 
  * @example
  * ```typescript
- * const tx = await updateMaxBorrow(lavarageProgram, {
+ * const tx = await updateOpenLtv(lavarageProgram, {
  *   tradingPool: poolPDA,
  *   nodeWallet: nodeWalletAddress,
  *   oracle: oraclePublicKey,
- *   maxBorrow: 5000000
+ *   openLtv: 7500
  * });
  * 
  * await sendAndConfirmTransaction(connection, tx, [wallet]);
  * ```
  */
-export async function updateMaxBorrow(
+export async function updateOpenLtv(
   lavarageProgram: Program<LavarageSOL> | Program<LavarageUSDC>,
   params: {
     tradingPool: PublicKey;
     nodeWallet: string;
     oracle: PublicKey;
-    maxBorrow: number;
+    openLtv: number;
     computeBudgetMicroLamports?: number;
   }
 ): Promise<VersionedTransaction> {
@@ -950,8 +982,13 @@ export async function updateMaxBorrow(
     await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
 
   const instruction = await lavarageProgram.methods
-    .lpOperatorUpdateMaxBorrow(new BN(params.maxBorrow))
-    .accountsStrict({
+    .lpOperatorUpdateTradingPool({
+      maxExposure: null,
+      interestRate: null,
+      openLtv: new BN(params.openLtv),
+      feedId: null,
+    })
+    .accounts({
       tradingPool: params.tradingPool,
       nodeWallet: new PublicKey(params.nodeWallet),
       operator: params.oracle,
