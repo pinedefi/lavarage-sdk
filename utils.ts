@@ -1,3 +1,6 @@
+import { Program } from "@coral-xyz/anchor";
+import LavarageSOLIdl from "./idl/lavarageSOL.json";
+
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 5,
@@ -44,4 +47,8 @@ export function u8ArrayToString(input: number[]): string {
   const end = input.indexOf(0);
   const bytes = new Uint8Array(end === -1 ? input : input.slice(0, end));
   return new TextDecoder().decode(bytes);
+}
+
+export function isSolProgram(program: Program<any>): boolean {
+  return program.programId.toBase58() === LavarageSOLIdl.address;
 }
