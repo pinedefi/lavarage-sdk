@@ -17,6 +17,7 @@ import { Lavarage as LavarageSOL } from "./idl/lavarageSOL";
 import { Lavarage as LavarageUSDC } from "./idl/lavarageUSDC";
 import { UserVault } from "./idl/userVault";
 import userVaultIDL from "./idl/userVault.json";
+import lavarageUSDCJson from "./idl/lavarageUSDC.json";
 import bs58 from "bs58";
 import {
   AccountInfo,
@@ -79,6 +80,37 @@ export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
 
   return PublicKey.findProgramAddressSync(seedsBuffer, programId)[0];
 }
+
+/** Converts snake_case to camelCase for IDL name/path strings so Anchor accepts camelCase account names in accountsStrict(). */
+function idlAccountNamesToCamelCase(idl: unknown): unknown {
+  if (idl === null || idl === undefined) return idl;
+  if (Array.isArray(idl)) return idl.map(idlAccountNamesToCamelCase);
+  if (typeof idl === "string") return idl;
+  if (typeof idl === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(idl)) {
+      let newV = idlAccountNamesToCamelCase(v);
+      if (
+        (k === "name" || k === "path") &&
+        typeof newV === "string" &&
+        newV.includes("_")
+      ) {
+        newV = newV
+          .split(".")
+          .map((s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase()))
+          .join(".");
+      }
+      out[k] = newV;
+    }
+    return out;
+  }
+  return idl;
+}
+
+const LAVARAGE_USDC_IDL_CAMEL = idlAccountNamesToCamelCase(
+  lavarageUSDCJson
+) as LavarageUSDC;
+
 /**
  * Generates a Position Account PDA for a specific offer and user
  *
@@ -1354,7 +1386,8 @@ export const openTradeV2 = async (
 ) => {
   let partnerFeeMarkupAsPkey;
   const referralVaultProgram = new Program<UserVault>(userVaultIDL, lavarageProgram.provider);
-  
+  const program = new Program<LavarageUSDC>(LAVARAGE_USDC_IDL_CAMEL, lavarageProgram.provider);
+
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
     feeBuffer.writeBigUInt64LE(BigInt(partnerFeeMarkup));
@@ -1364,25 +1397,27 @@ export const openTradeV2 = async (
   }
   // assuming all token accounts are created prior
   const positionAccount = getPositionAccountPDA(
-    lavarageProgram,
+    program,
     offer,
     randomSeed.publicKey
   );
 
+  console.log("SDK: positionAccount", positionAccount.toBase58());
+
   const quoteMintAccount = optionalRPCResults?.quoteMintAccountInfo ??
-    await lavarageProgram.provider.connection.getAccountInfo(quoteToken);
+    await program.provider.connection.getAccountInfo(quoteToken);
   const quoteTokenProgram = quoteMintAccount?.owner;
 
   const fromTokenAccount = await getTokenAccountOrCreateIfNotExists(
-    lavarageProgram,
-    lavarageProgram.provider.publicKey!,
+    program,
+    program.provider.publicKey!,
     offer.account.collateralType,
     tokenProgram,
     optionalRPCResults?.tokenAccountConfirmCreatedAddresses
   );
 
   const toTokenAccount = await getTokenAccountOrCreateIfNotExists(
-    lavarageProgram,
+    program,
     positionAccount,
     offer.account.collateralType,
     tokenProgram,
@@ -1390,7 +1425,7 @@ export const openTradeV2 = async (
   );
 
   const platformFeeRecipientAccount = platformFeeRecipient ? await getTokenAccountOrCreateIfNotExists(
-    lavarageProgram,
+    program,
     platformFeeRecipient,
     offer.account.collateralType,
     tokenProgram,
@@ -1436,7 +1471,7 @@ export const openTradeV2 = async (
     keys: string[]
   ): Promise<AddressLookupTableAccount[]> => {
     const addressLookupTableAccountInfos =
-      optionalRPCResults?.addressLookupTableAccounts ?? await lavarageProgram.provider.connection.getMultipleAccountsInfo(
+      optionalRPCResults?.addressLookupTableAccounts ?? await program.provider.connection.getMultipleAccountsInfo(
         keys.map((key) => new PublicKey(key))
       );
 
@@ -1467,7 +1502,7 @@ export const openTradeV2 = async (
   );
 
   const { blockhash } =
-    await lavarageProgram.provider.connection.getLatestBlockhash("finalized");
+    await program.provider.connection.getLatestBlockhash("finalized");
 
   const useReferral = discountBps !== undefined && referralBps !== undefined;
 
@@ -1499,7 +1534,7 @@ export const openTradeV2 = async (
     );
     
     // Check both accounts at the same time
-    const [vaultAccountInfo, vaultTokenAccountInfo] = await lavarageProgram.provider.connection.getMultipleAccountsInfo([
+    const [vaultAccountInfo, vaultTokenAccountInfo] = await program.provider.connection.getMultipleAccountsInfo([
       userVaultPda,
       vaultTokenAccount
     ]);
@@ -1511,7 +1546,7 @@ export const openTradeV2 = async (
         .accountsStrict({
           userVault: userVaultPda,
           user: partnerFeeRecipient!,
-          funder: lavarageProgram.provider.publicKey!,
+          funder: program.provider.publicKey!,
           systemProgram: SystemProgram.programId,
         })
         .instruction();
@@ -1520,7 +1555,7 @@ export const openTradeV2 = async (
     // Create token account if it doesn't exist
     if (!vaultTokenAccountInfo) {
       partnerFeeRecipientTokenAccountCreateIx = createAssociatedTokenAccountIdempotentInstruction(
-        lavarageProgram.provider.publicKey!,
+        program.provider.publicKey!,
         vaultTokenAccount,
         userVaultPda,
         quoteToken,
@@ -1529,12 +1564,12 @@ export const openTradeV2 = async (
       );
     }
   } else if (partnerFeeRecipient && partnerDirectAta) {
-    const [partnerDirectAtaInfo] = await lavarageProgram.provider.connection.getMultipleAccountsInfo([
+    const [partnerDirectAtaInfo] = await program.provider.connection.getMultipleAccountsInfo([
       partnerDirectAta
     ]);
     if (!partnerDirectAtaInfo) {
       partnerFeeRecipientTokenAccountCreateIx = createAssociatedTokenAccountIdempotentInstruction(
-        lavarageProgram.provider.publicKey!,
+        program.provider.publicKey!,
         partnerDirectAta,
         partnerFeeRecipient!,
         quoteToken,
@@ -1548,13 +1583,13 @@ export const openTradeV2 = async (
 
   const updateOracleInstructions = await getUpdateOracleIxs(
     // @ts-expect-error IDL mismatch
-    lavarageProgram,
-    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
+    program,
+    u8ArrayToString(offer.account.feedId), program.provider.publicKey!,
     apiKeys
   );
 
   const tradingOpenBorrowInstruction = useReferral
-    ? await lavarageProgram.methods
+    ? await program.methods
         .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL,
@@ -1566,7 +1601,7 @@ export const openTradeV2 = async (
           instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
           tradingPool: offer.publicKey,
           positionAccount,
-          trader: lavarageProgram.provider.publicKey!,
+          trader: program.provider.publicKey!,
           systemProgram: SystemProgram.programId,
           clock: SYSVAR_CLOCK_PUBKEY,
           randomAccountAsId: randomSeed.publicKey.toBase58(),
@@ -1578,7 +1613,7 @@ export const openTradeV2 = async (
           ),
           toTokenAccount: getAssociatedTokenAddressSync(
             quoteToken,
-            lavarageProgram.provider.publicKey!,
+            program.provider.publicKey!,
             true,
             quoteTokenProgram
           ),
@@ -1613,7 +1648,7 @@ export const openTradeV2 = async (
             : []
         )
         .instruction()
-    : await lavarageProgram.methods
+    : await program.methods
         .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
           marginSOL
@@ -1623,7 +1658,7 @@ export const openTradeV2 = async (
           instructions: SYSVAR_INSTRUCTIONS_PUBKEY,
           tradingPool: offer.publicKey,
           positionAccount,
-          trader: lavarageProgram.provider.publicKey!,
+          trader: program.provider.publicKey!,
           systemProgram: SystemProgram.programId,
           clock: SYSVAR_CLOCK_PUBKEY,
           randomAccountAsId: randomSeed.publicKey.toBase58(),
@@ -1635,7 +1670,7 @@ export const openTradeV2 = async (
           ),
           toTokenAccount: getAssociatedTokenAddressSync(
             quoteToken,
-            lavarageProgram.provider.publicKey!,
+            program.provider.publicKey!,
             true,
             quoteTokenProgram
           ),
@@ -1675,11 +1710,11 @@ export const openTradeV2 = async (
 
   const quoteOracleQuote = getOracleQuoteForCollateralType(USDC_MINT);
 
-  const openAddCollateralInstruction = await lavarageProgram.methods
+  const openAddCollateralInstruction = await program.methods
     .tradingOpenAddCollateral(offer.account.interestRate < 255 ? offer.account.interestRate + 1 : 255)
     .accountsStrict({
       tradingPool: offer.publicKey,
-      trader: lavarageProgram.provider.publicKey!,
+      trader: program.provider.publicKey!,
       mint: offer.account.collateralType,
       toTokenAccount: toTokenAccount.account!.address,
       systemProgram: SystemProgram.programId,
@@ -1722,7 +1757,7 @@ export const openTradeV2 = async (
     ].filter(Boolean) as TransactionInstruction[];
 
     const messageV01 = new TransactionMessage({
-      payerKey: lavarageProgram.provider.publicKey!,
+      payerKey: program.provider.publicKey!,
       recentBlockhash: blockhash,
       instructions: setUpInstructions,
     }).compileToV0Message(addressLookupTableAccounts);
@@ -1730,7 +1765,7 @@ export const openTradeV2 = async (
     const tx2 = new VersionedTransaction(messageV01);
 
     const messageV0 = new TransactionMessage({
-      payerKey: lavarageProgram.provider.publicKey!,
+      payerKey: program.provider.publicKey!,
       recentBlockhash: blockhash,
       instructions: allInstructions,
     }).compileToV0Message(addressLookupTableAccounts);
@@ -1752,7 +1787,7 @@ export const openTradeV2 = async (
   ].filter(Boolean) as TransactionInstruction[];
 
   const messageV0 = new TransactionMessage({
-    payerKey: lavarageProgram.provider.publicKey!,
+    payerKey: program.provider.publicKey!,
     recentBlockhash: blockhash,
     instructions: allInstructions,
   }).compileToV0Message(addressLookupTableAccounts);
