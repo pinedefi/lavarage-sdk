@@ -81,36 +81,6 @@ export function getPda(seed: Buffer | Buffer[], programId: PublicKey) {
   return PublicKey.findProgramAddressSync(seedsBuffer, programId)[0];
 }
 
-/** Converts snake_case to camelCase for IDL name/path strings so Anchor accepts camelCase account names in accountsStrict(). */
-function idlAccountNamesToCamelCase(idl: unknown): unknown {
-  if (idl === null || idl === undefined) return idl;
-  if (Array.isArray(idl)) return idl.map(idlAccountNamesToCamelCase);
-  if (typeof idl === "string") return idl;
-  if (typeof idl === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(idl)) {
-      let newV = idlAccountNamesToCamelCase(v);
-      if (
-        (k === "name" || k === "path") &&
-        typeof newV === "string" &&
-        newV.includes("_")
-      ) {
-        newV = newV
-          .split(".")
-          .map((s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase()))
-          .join(".");
-      }
-      out[k] = newV;
-    }
-    return out;
-  }
-  return idl;
-}
-
-const LAVARAGE_USDC_IDL_CAMEL = idlAccountNamesToCamelCase(
-  lavarageUSDCJson
-) as LavarageUSDC;
-
 /**
  * Generates a Position Account PDA for a specific offer and user
  *
@@ -1386,7 +1356,7 @@ export const openTradeV2 = async (
 ) => {
   let partnerFeeMarkupAsPkey;
   const referralVaultProgram = new Program<UserVault>(userVaultIDL, lavarageProgram.provider);
-  const program = new Program<LavarageUSDC>(LAVARAGE_USDC_IDL_CAMEL, lavarageProgram.provider);
+  const program = new Program<LavarageUSDC>(lavarageUSDCJson, lavarageProgram.provider);
 
   if (partnerFeeMarkup) {
     const feeBuffer = Buffer.alloc(8);
