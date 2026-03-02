@@ -872,10 +872,11 @@ export const borrowV2 = async (
   });
 
   const allInstructions = [
+    // must be the first instruction in the transaction
+    ...updateOracleInstructions,
     fromTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
-    ...updateOracleInstructions,
     tradingOpenBorrowInstruction!,
     openAddCollateralInstruction!,
     computeBudgetMicroLamports ? computeFeeIx : undefined,
@@ -1715,13 +1716,14 @@ export const openTradeV2 = async (
     const setUpInstructions = [
       // fromTokenAccount.instruction!,
       // toTokenAccount.instruction!,
+      // must be the first instruction in the transaction
+      ...updateOracleInstructions,
       partnerFeeRecipientVaultCreateIx,
       partnerFeeRecipientTokenAccountCreateIx,
       ...setupInstructions.map(deserializeInstruction),
     ].filter(Boolean) as TransactionInstruction[];
 
     const allInstructions = [
-      ...updateOracleInstructions,
       tradingOpenBorrowInstruction!,
       deserializeInstruction(swapInstructionPayload), ,
       openAddCollateralInstruction!,
@@ -1750,9 +1752,10 @@ export const openTradeV2 = async (
   const allInstructions = [
     // fromTokenAccount.instruction!,
     // toTokenAccount.instruction!,
+    // must be the first instruction in the transaction
+    ...updateOracleInstructions,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
-    ...updateOracleInstructions,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
     openAddCollateralInstruction!,
