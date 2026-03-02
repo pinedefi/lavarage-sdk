@@ -15,12 +15,12 @@ export type ApiKeys = {
 export const SURGE_FEEDS = [
   {
     address: NATIVE_MINT.toBase58(),
-    feedId: '822512ee9add93518eca1c105a38422841a76c590db079eebb283deb2c14caa9',
+    feedId: '0x822512ee9add93518eca1c105a38422841a76c590db079eebb283deb2c14caa9',
     label: 'SOL-USD',
   },
   {
     address: USDC_MINT.toBase58(),
-    feedId: '883ea8295f70ae506e894679d124196bb07064ea530cefd835b58c33a5ab6549',
+    feedId: '0x883ea8295f70ae506e894679d124196bb07064ea530cefd835b58c33a5ab6549',
     label: 'USDC-USD',
   },
 ];
