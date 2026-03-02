@@ -1374,8 +1374,6 @@ export const openTradeV2 = async (
     randomSeed.publicKey
   );
 
-  console.log("SDK: positionAccount", positionAccount.toBase58());
-
   const quoteMintAccount = optionalRPCResults?.quoteMintAccountInfo ??
     await program.provider.connection.getAccountInfo(quoteToken);
   const quoteTokenProgram = quoteMintAccount?.owner;
@@ -1754,6 +1752,7 @@ export const openTradeV2 = async (
     // toTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
+    ...updateOracleInstructions,
     tradingOpenBorrowInstruction!,
     ...jupiterIxs,
     openAddCollateralInstruction!,
