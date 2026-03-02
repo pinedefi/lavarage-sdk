@@ -781,7 +781,9 @@ export const borrowV2 = async (
     : await lavarageProgram.methods
         .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
-          marginSOL
+          marginSOL,
+          null,
+          null,
         )
         .accountsStrict({
           nodeWallet: offer.account.nodeWallet,
@@ -1621,7 +1623,9 @@ export const openTradeV2 = async (
     : await program.methods
         .tradingOpenBorrow(
           new BN((marginSOL.toNumber() * leverage).toFixed(0)),
-          marginSOL
+          marginSOL,
+          null,
+          null,
         )
         .accountsStrict({
           nodeWallet: offer.account.nodeWallet,
