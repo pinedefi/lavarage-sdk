@@ -45,7 +45,7 @@ import {
 import { queuePubkey, USDC_MINT } from "./constants";
 import { getOracleQuoteForCollateralType, getOracleQuoteForFeedId } from "./switchboard";
 import { u8ArrayToString } from "./utils";
-import { ApiKeys, getUpdateOracleIxs } from "./crossbar";
+import { ApiKeys } from "./crossbar";
 
 export * from "./evm";
 export * as lending from "./lending";
@@ -613,7 +613,6 @@ export const borrowV2 = async (
   randomSeed: Keypair,
   quoteToken: PublicKey,
   tokenProgram: PublicKey,
-  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -710,13 +709,6 @@ export const borrowV2 = async (
       );
     }
   }
-
-  const updateOracleInstructions = await getUpdateOracleIxs(
-    // @ts-expect-error IDL mismatch
-    lavarageProgram,
-    u8ArrayToString(offer.account.feedId), lavarageProgram.provider.publicKey!,
-    apiKeys
-  );
 
   const tradingOpenBorrowInstruction = useReferral
     ? await lavarageProgram.methods
@@ -872,8 +864,6 @@ export const borrowV2 = async (
   });
 
   const allInstructions = [
-    // must be the first instruction in the transaction
-    ...updateOracleInstructions,
     fromTokenAccount.instruction!,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
@@ -1347,7 +1337,6 @@ export const openTradeV2 = async (
   randomSeed: Keypair,
   quoteToken: PublicKey,
   tokenProgram: PublicKey,
-  apiKeys: ApiKeys,
   partnerFeeRecipient?: PublicKey,
   partnerFeeMarkup?: number,
   computeBudgetMicroLamports?: number,
@@ -1550,15 +1539,6 @@ export const openTradeV2 = async (
     }
   }
 
-  
-
-  const updateOracleInstructions = await getUpdateOracleIxs(
-    // @ts-expect-error IDL mismatch
-    program,
-    u8ArrayToString(offer.account.feedId), program.provider.publicKey!,
-    apiKeys
-  );
-
   const tradingOpenBorrowInstruction = useReferral
     ? await program.methods
         .tradingOpenBorrow(
@@ -1716,8 +1696,6 @@ export const openTradeV2 = async (
     const setUpInstructions = [
       // fromTokenAccount.instruction!,
       // toTokenAccount.instruction!,
-      // must be the first instruction in the transaction
-      ...updateOracleInstructions,
       partnerFeeRecipientVaultCreateIx,
       partnerFeeRecipientTokenAccountCreateIx,
       ...setupInstructions.map(deserializeInstruction),
@@ -1752,8 +1730,6 @@ export const openTradeV2 = async (
   const allInstructions = [
     // fromTokenAccount.instruction!,
     // toTokenAccount.instruction!,
-    // must be the first instruction in the transaction
-    ...updateOracleInstructions,
     partnerFeeRecipientVaultCreateIx,
     partnerFeeRecipientTokenAccountCreateIx,
     tradingOpenBorrowInstruction!,
