@@ -2,11 +2,11 @@ import { NATIVE_MINT } from "@solana/spl-token";
 import { USDC_MINT } from "./constants";
 import { Program } from "@coral-xyz/anchor";
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { getQueue, isMainnetConnection, ON_DEMAND_DEVNET_QUEUE, ON_DEMAND_MAINNET_QUEUE } from "@switchboard-xyz/on-demand";
 import { CrossbarClient } from "@switchboard-xyz/common";
 import { retryWithBackoff } from "./utils";
 import { Lavarage as LavarageSOL } from "./idl/lavarageSOL";
 import { Lavarage as LavarageUSDC } from "./idl/lavarageUSDC";
+import { getSwitchboardQueue } from "./switchboard";
 
 export type ApiKeys = {
   birdeyeApiKey: string;
@@ -35,11 +35,8 @@ function getVariableOverrides(apiKeys: ApiKeys) {
 }
 
 export async function getUpdateOracleIxs(program: Program<LavarageSOL | LavarageUSDC>, feedId: string, payer: PublicKey, apiKeys: ApiKeys): Promise<TransactionInstruction[]> {
-  const queue = await getQueue({
-    // @ts-expect-error @coral-xyz/anchor versions mismatch
-    program,
-    queueAddress: await isMainnetConnection(program.provider.connection) ? ON_DEMAND_MAINNET_QUEUE : ON_DEMAND_DEVNET_QUEUE,
-  });
+  // @ts-expect-error @coral-xyz/anchor versions mismatch
+  const queue = await getSwitchboardQueue(program.provider);
 
   return await retryWithBackoff(async () => await queue.fetchManagedUpdateIxs(
     crossbarClient,
