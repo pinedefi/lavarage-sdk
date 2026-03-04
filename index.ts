@@ -43,7 +43,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { queuePubkey, USDC_MINT } from "./constants";
-import { getOracleQuoteForCollateralType, getOracleQuoteForFeedId } from "./switchboard";
+import { getOracleQuoteForCollateralType, getOracleQuoteForFeedId, getSwitchboardQueue } from "./switchboard";
 import { u8ArrayToString } from "./utils";
 import { ApiKeys } from "./crossbar";
 
@@ -1455,11 +1455,18 @@ export const openTradeV2 = async (
 
   const addressLookupTableAccounts: AddressLookupTableAccount[] = [];
 
+  // @ts-expect-error @coral-xyz/anchor versions mismatch
+  const queue = await getSwitchboardQueue(program.provider);
+
+  const switchboardLookupTables = await queue.loadLookupTable();
+
   addressLookupTableAccounts.push(
     ...(await getAddressLookupTableAccounts([
       ...addressLookupTableAddresses,
       getQuoteCurrencySpecificAddressLookupTable(quoteToken.toBase58()),
       LAVARAGE_LOOKUP_TABLE,
+    ])),
+    switchboardLookupTables
   );
 
   const { blockhash } =
