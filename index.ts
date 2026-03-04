@@ -2903,7 +2903,9 @@ export const closeTradeV2 = async (
       : await lavarageProgram.methods
           .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
-            new BN(9997)
+            new BN(9997),
+            null,
+            null,
           )
           .accountsStrict({
             nodeWallet: pool.account.nodeWallet,
@@ -3014,7 +3016,9 @@ export const closeTradeV2 = async (
       : await lavarageProgram.methods
           .tradingCloseRepaySol(
             new BN(jupInstruction.quoteResponse.outAmount),
-            new BN(9998)
+            new BN(9998),
+            null,
+            null,
           )
           .accountsStrict({
             nodeWallet: pool.account.nodeWallet,
