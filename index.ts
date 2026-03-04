@@ -59,6 +59,8 @@ type OptionalRPCResults = {
 }
 const REFFERAL_VAULT_PROGRAM_ID = new PublicKey("FFe8xWs9iBdWB6vsxg8yBLirZHsbACFNbXqAM4K3fPPB");
 
+const LAVARAGE_LOOKUP_TABLE = "CDPmKb5VggsHABwDCTaxiw5XXLjcgkqSJMNKRTzHWXwK";
+
 /**
  * Derives a Program Derived Address (PDA) for the given seed(s) and program ID
  * 
@@ -1069,7 +1071,7 @@ export const openTradeV1 = async (
 
   addressLookupTableAccounts.push(
     ...(await getAddressLookupTableAccounts([
-      "5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi",
+      LAVARAGE_LOOKUP_TABLE,
       ...addressLookupTableAddresses,
     ]))
   );
@@ -1457,8 +1459,7 @@ export const openTradeV2 = async (
     ...(await getAddressLookupTableAccounts([
       ...addressLookupTableAddresses,
       getQuoteCurrencySpecificAddressLookupTable(quoteToken.toBase58()),
-      "5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi",
-    ]))
+      LAVARAGE_LOOKUP_TABLE,
   );
 
   const { blockhash } =
@@ -2514,7 +2515,7 @@ export const closeTradeV1 = async (
     ].filter((i) => !!i);
     addressLookupTableAccounts.push(
       ...(await getAddressLookupTableAccounts([
-        "5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi",
+        LAVARAGE_LOOKUP_TABLE,
         ...addressLookupTableAddresses,
       ]))
     );
@@ -3076,7 +3077,7 @@ export const closeTradeV2 = async (
       ...(await getAddressLookupTableAccounts([
         ...addressLookupTableAddresses,
         getQuoteCurrencySpecificAddressLookupTable(quoteToken.toBase58()),
-        "5LEAB3owNUSKvECm7vkr58tDtQpzbngQ2NYpc7qmRFdi",
+        LAVARAGE_LOOKUP_TABLE,
       ]))
     );
   }
