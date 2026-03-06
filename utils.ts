@@ -43,18 +43,12 @@ export function stringToU8Array(input: string): number[] {
 }
 
 export function u8ArrayToString(input: number[]): string {
-  // Strip trailing zero-padding and decode
-  const end = input.indexOf(0);
-  const bytes = new Uint8Array(end === -1 ? input : input.slice(0, end));
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  try {
-    return decoder.decode(bytes);
-  } catch {
-    // Not valid UTF-8 (e.g. raw binary/hash); return hex
-    return '0x' + Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+  // validate that input has no more than 32 bytes
+  if (input.length > 32) {
+    throw new Error('Input has more than 32 bytes');
   }
+  
+  return '0x' + Buffer.from(input).toString('hex');
 }
 
 export function isSolProgram(program: Program<any>): boolean {
