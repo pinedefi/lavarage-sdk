@@ -3378,7 +3378,7 @@ export const splitPositionV2 = async (
     createNewPosition1TokenAccountIx,
     createNewPosition2TokenAccountIx,
     ix,
-    computeBudgetIx,
+    computeBudgetMicroLamports ? computeBudgetIx : undefined,
   ].filter((i) => !!i);
 
   const { blockhash } =
@@ -3523,7 +3523,7 @@ export const mergePositionV2 = async (
   const allInstructions = [
     createNewPositionTokenAccountIx,
     ix,
-    computeBudgetIx,
+    computeBudgetMicroLamports ? computeBudgetIx : undefined,
   ].filter((i) => !!i);
 
   const { blockhash } =
