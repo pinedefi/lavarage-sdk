@@ -57,7 +57,6 @@ type OptionalRPCResults = {
   tokenAccountConfirmCreatedAddresses?: PublicKey[];
   quoteMintAccountInfo?: AccountInfo<Buffer>;
 }
-const REFFERAL_VAULT_PROGRAM_ID = new PublicKey("FFe8xWs9iBdWB6vsxg8yBLirZHsbACFNbXqAM4K3fPPB");
 
 const LAVARAGE_LOOKUP_TABLE = "CDPmKb5VggsHABwDCTaxiw5XXLjcgkqSJMNKRTzHWXwK";
 
