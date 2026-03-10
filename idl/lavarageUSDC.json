@@ -3155,6 +3155,12 @@
           "name": "mint"
         },
         {
+          "name": "quote_mint",
+          "docs": [
+            "Quote token mint — validated against pool's qt_type"
+          ]
+        },
+        {
           "name": "to_token_account",
           "writable": true,
           "pda": {

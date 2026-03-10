@@ -3161,6 +3161,12 @@ export type Lavarage = {
           "name": "mint"
         },
         {
+          "name": "quoteMint",
+          "docs": [
+            "Quote token mint — validated against pool's qt_type"
+          ]
+        },
+        {
           "name": "toTokenAccount",
           "writable": true,
           "pda": {

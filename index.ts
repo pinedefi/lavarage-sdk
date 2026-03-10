@@ -568,7 +568,6 @@ export const borrowV1 = async (
       tradingPool: offer.publicKey,
       trader: lavarageProgram.provider.publicKey!,
       mint: offer.account.collateralType,
-      quoteMint: quoteToken,
       toTokenAccount: toTokenAccount.account!.address,
       systemProgram: SystemProgram.programId,
       positionAccount,
@@ -1209,12 +1208,12 @@ export const openTradeV1 = async (
       fromTokenAccount.instruction!,
       toTokenAccount.instruction!,
       partnerFeeRecipientCreateIx,
-      ...setupInstructions.map(deserializeInstruction),
     ].filter(Boolean) as TransactionInstruction[];
 
     const allInstructions = [
       tradingOpenBorrowInstruction!,
-      deserializeInstruction(swapInstructionPayload), ,
+      ...setupInstructions.map(deserializeInstruction),
+      deserializeInstruction(swapInstructionPayload),
       openAddCollateralInstruction!,
       computeBudgetMicroLamports ? computeFeeIx : undefined,
     ].filter(Boolean) as TransactionInstruction[];
